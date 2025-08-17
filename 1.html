@@ -1,0 +1,2762 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="description" content="AIVOX - Sách 3D tương tác học tiếng Anh với AI và ESP32">
+  <title>AIVOX – 3D English Book | Học tiếng Anh tương tác</title>
+
+  <!-- Preload resources -->
+  <link rel="preload" href="https://cdn.tailwindcss.com" as="script">
+  <link rel="preload" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" as="style">
+  <link rel="preload" href="https://cdnjs.cloudflare.com/ajax/libs/three.js/r150/three.min.js" as="script">
+  <link rel="preload" href="https://cdn.jsdelivr.net/npm/chart.js" as="script">
+  <link rel="preload" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" as="style">
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#eff6ff',
+              100: '#dbeafe',
+              200: '#bfdbfe',
+              300: '#93c5fd',
+              400: '#60a5fa',
+              500: '#3b82f6',
+              600: '#2563eb',
+              700: '#1d4ed8',
+              800: '#1e40af',
+              900: '#1e3a8a',
+            }
+          },
+          fontFamily: {
+            sans: ['Inter', 'system-ui', '-apple-system', 'Segoe UI', 'Roboto', 'Helvetica', 'Arial', 'sans-serif'],
+          },
+          animation: {
+            'fade-in': 'fadeIn 1s ease-out forwards',
+            'gradient-text': 'gradientText 3s linear infinite',
+            'spin-slow': 'spin 3s linear infinite',
+            'bounce-slow': 'bounce 2s infinite',
+            'float': 'float 6s ease-in-out infinite',
+            'pulse-slow': 'pulse 5s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+            'pulse-fast': 'pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+          },
+          keyframes: {
+            float: {
+              '0%, 100%': { transform: 'translateY(0)' },
+              '50%': { transform: 'translateY(-10px)' },
+            },
+            fadeIn: {
+              'from': { opacity: 0, transform: 'translateY(20px)' },
+              'to': { opacity: 1, transform: 'translateY(0)' },
+            },
+            gradientText: {
+              '0%': { 'background-position': '0% 50%' },
+              '50%': { 'background-position': '100% 50%' },
+              '100%': { 'background-position': '0% 50%' },
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- Font: Inter -->
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap">
+
+  <!-- Font Awesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+
+  <!-- Custom CSS -->
+  <style>
+    html {
+      scroll-behavior: smooth;
+    }
+    
+    .glass {
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      background: rgba(255, 255, 255, 0.85);
+    }
+    
+    #book-wrap {
+      position: relative;
+      width: 100%;
+      height: 520px;
+      overflow: hidden;
+    }
+    
+    .floating {
+      animation: float 6s ease-in-out infinite;
+    }
+    
+    .tech-card {
+      transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+    }
+    
+    .tech-card:hover {
+      transform: translateY(-8px);
+      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    }
+    
+    .hover-underline-animation {
+      display: inline-block;
+      position: relative;
+    }
+    
+    .hover-underline-animation::after {
+      content: '';
+      position: absolute;
+      width: 0;
+      height: 2px;
+      bottom: -2px;
+      left: 0;
+      background-color: #3b82f6;
+      transition: width 0.3s ease;
+    }
+    
+    .hover-underline-animation:hover::after {
+      width: 100%;
+    }
+
+    .animate-gradient-text {
+      background-size: 200% auto;
+      animation: gradientText 3s linear infinite;
+    }
+
+    .section-animate {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+
+    .pulse-mic {
+      animation: pulse-fast 1.5s infinite;
+    }
+
+    .pronunciation-feedback {
+      transition: all 0.3s ease;
+    }
+
+    .game-card {
+      transition: all 0.3s ease;
+      perspective: 1000px;
+    }
+    
+    .game-card-inner {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      transition: transform 0.6s;
+      transform-style: preserve-3d;
+    }
+    
+    .game-card:hover .game-card-inner {
+      transform: rotateY(180deg);
+    }
+    
+    .game-card-front, .game-card-back {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      backface-visibility: hidden;
+      border-radius: 0.5rem;
+      overflow: hidden;
+    }
+    
+    .game-card-back {
+      transform: rotateY(180deg);
+    }
+
+    .progress-ring__circle {
+      transition: stroke-dashoffset 0.5s;
+      transform: rotate(-90deg);
+      transform-origin: 50% 50%;
+    }
+    
+    .flip-card {
+      perspective: 1000px;
+    }
+    
+    .flip-card-inner {
+      transition: transform 0.6s;
+      transform-style: preserve-3d;
+    }
+    
+    .flip-card.flipped .flip-card-inner {
+      transform: rotateY(180deg);
+    }
+    
+    .flip-card-front, .flip-card-back {
+      backface-visibility: hidden;
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+    }
+    
+    .flip-card-back {
+      transform: rotateY(180deg);
+    }
+    
+    .word-card {
+      transition: all 0.3s ease;
+    }
+    
+    .word-card:hover {
+      transform: scale(1.03);
+    }
+    
+    .typing-cursor {
+      display: inline-block;
+      width: 2px;
+      height: 1em;
+      background-color: currentColor;
+      animation: blink 1s infinite;
+    }
+    
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0; }
+    }
+    
+    .streak-fire {
+      animation: flame 1.5s ease-in-out infinite alternate;
+    }
+    
+    @keyframes flame {
+      0% { transform: scale(1); opacity: 1; }
+      100% { transform: scale(1.1); opacity: 0.8; }
+    }
+    
+    .level-up {
+      animation: levelUp 0.5s ease-out;
+    }
+    
+    @keyframes levelUp {
+      0% { transform: scale(1); opacity: 0; }
+      50% { transform: scale(1.2); opacity: 1; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+    
+    .progress-bar {
+      transition: width 0.5s ease-in-out;
+    }
+    
+    .conversation-bubble {
+      position: relative;
+      border-radius: 1em;
+      padding: 0.75em 1em;
+      max-width: 80%;
+      margin-bottom: 1em;
+    }
+    
+    .user-bubble {
+      background-color: #3b82f6;
+      color: white;
+      margin-left: auto;
+      border-bottom-right-radius: 0;
+    }
+    
+    .bot-bubble {
+      background-color: #e5e7eb;
+      color: #111827;
+      margin-right: auto;
+      border-bottom-left-radius: 0;
+    }
+
+    .game-dashboard {
+      background: linear-gradient(to bottom right, #f8fafc, #e2e8f0);
+      border-radius: 1rem;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    }
+
+    .game-section {
+      background-color: white;
+      border-radius: 0.75rem;
+      box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+      transition: all 0.3s ease;
+    }
+
+    .game-section:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    }
+
+    .game-mode-card {
+      transition: all 0.3s ease;
+    }
+
+    .game-mode-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+    }
+    
+    /* New styles for exercises */
+    .exercise-container {
+      background-color: white;
+      border-radius: 0.75rem;
+      box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+      padding: 1.5rem;
+      margin-bottom: 1.5rem;
+    }
+    
+    .exercise-question {
+      font-weight: 600;
+      margin-bottom: 1rem;
+      font-size: 1.1rem;
+    }
+    
+    .exercise-options {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 0.75rem;
+      margin-bottom: 1rem;
+    }
+    
+    .exercise-option {
+      padding: 0.75rem;
+      border: 1px solid #e5e7eb;
+      border-radius: 0.5rem;
+      cursor: pointer;
+      transition: all 0.2s;
+      text-align: center;
+    }
+    
+    .exercise-option:hover {
+      background-color: #f3f4f6;
+    }
+    
+    .exercise-option.correct {
+      background-color: #d1fae5;
+      border-color: #10b981;
+      color: #065f46;
+    }
+    
+    .exercise-option.incorrect {
+      background-color: #fee2e2;
+      border-color: #ef4444;
+      color: #991b1b;
+    }
+    
+    .exercise-option.selected {
+      background-color: #dbeafe;
+      border-color: #3b82f6;
+      color: #1e40af;
+    }
+    
+    .exercise-feedback {
+      padding: 0.75rem;
+      border-radius: 0.5rem;
+      margin-top: 1rem;
+      display: none;
+    }
+    
+    .exercise-feedback.correct {
+      background-color: #d1fae5;
+      color: #065f46;
+      display: block;
+    }
+    
+    .exercise-feedback.incorrect {
+      background-color: #fee2e2;
+      color: #991b1b;
+      display: block;
+    }
+    
+    .exercise-next-btn {
+      background-color: #3b82f6;
+      color: white;
+      padding: 0.5rem 1rem;
+      border-radius: 0.375rem;
+      font-weight: 500;
+      cursor: pointer;
+      border: none;
+      margin-top: 1rem;
+      transition: background-color 0.2s;
+    }
+    
+    .exercise-next-btn:hover {
+      background-color: #2563eb;
+    }
+    
+    .exercise-progress {
+      height: 0.5rem;
+      background-color: #e5e7eb;
+      border-radius: 0.25rem;
+      margin-bottom: 1.5rem;
+      overflow: hidden;
+    }
+    
+    .exercise-progress-bar {
+      height: 100%;
+      background-color: #3b82f6;
+      transition: width 0.3s ease;
+    }
+    
+    .exercise-score {
+      font-weight: 600;
+      margin-bottom: 1rem;
+      text-align: right;
+    }
+    
+    .exercise-result {
+      text-align: center;
+      padding: 2rem;
+      display: none;
+    }
+    
+    .exercise-result h3 {
+      font-size: 1.5rem;
+      font-weight: 700;
+      margin-bottom: 1rem;
+    }
+    
+    .exercise-result p {
+      margin-bottom: 1.5rem;
+      color: #4b5563;
+    }
+    
+    .exercise-result-btn {
+      background-color: #3b82f6;
+      color: white;
+      padding: 0.75rem 1.5rem;
+      border-radius: 0.5rem;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+      transition: background-color 0.2s;
+      display: inline-block;
+    }
+    
+    .exercise-result-btn:hover {
+      background-color: #2563eb;
+    }
+    
+    /* Fill in the blank styles */
+    .fill-blank-input {
+      border-bottom: 2px solid #3b82f6;
+      padding: 0.25rem 0.5rem;
+      width: 120px;
+      text-align: center;
+      font-size: 1rem;
+      margin: 0 0.25rem;
+    }
+    
+    .fill-blank-sentence {
+      margin-bottom: 1.5rem;
+      line-height: 2;
+    }
+    
+    /* Matching exercise styles */
+    .matching-container {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+    }
+    
+    .matching-column {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+    
+    .matching-item {
+      padding: 0.75rem;
+      border: 1px solid #e5e7eb;
+      border-radius: 0.5rem;
+      cursor: pointer;
+      transition: all 0.2s;
+      text-align: center;
+    }
+    
+    .matching-item.selected {
+      background-color: #dbeafe;
+      border-color: #3b82f6;
+    }
+    
+    .matching-item.matched {
+      background-color: #d1fae5;
+      border-color: #10b981;
+      cursor: default;
+    }
+    
+    /* Listening exercise styles */
+    .listening-audio-container {
+      display: flex;
+      justify-content: center;
+      margin-bottom: 1.5rem;
+    }
+    
+    .listening-audio-btn {
+      background-color: #3b82f6;
+      color: white;
+      border: none;
+      border-radius: 50%;
+      width: 60px;
+      height: 60px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    
+    .listening-audio-btn:hover {
+      background-color: #2563eb;
+      transform: scale(1.05);
+    }
+    
+    .listening-audio-btn i {
+      font-size: 1.5rem;
+    }
+    
+    /* Speaking exercise styles */
+    .speaking-container {
+      text-align: center;
+    }
+    
+    .speaking-prompt {
+      font-size: 1.2rem;
+      margin-bottom: 1.5rem;
+    }
+    
+    .speaking-btn {
+      background-color: #3b82f6;
+      color: white;
+      padding: 0.75rem 1.5rem;
+      border-radius: 2rem;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+      transition: all 0.2s;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    
+    .speaking-btn:hover {
+      background-color: #2563eb;
+    }
+    
+    .speaking-btn.recording {
+      background-color: #ef4444;
+      animation: pulse 1.5s infinite;
+    }
+    
+    .speaking-feedback {
+      margin-top: 1.5rem;
+      padding: 1rem;
+      border-radius: 0.5rem;
+      display: none;
+    }
+    
+    .speaking-feedback.show {
+      display: block;
+    }
+    
+    .speaking-feedback.correct {
+      background-color: #d1fae5;
+      color: #065f46;
+    }
+    
+    .speaking-feedback.incorrect {
+      background-color: #fee2e2;
+      color: #991b1b;
+    }
+    
+    /* Writing exercise styles */
+    .writing-prompt {
+      margin-bottom: 1rem;
+    }
+    
+    .writing-area {
+      width: 100%;
+      min-height: 150px;
+      padding: 1rem;
+      border: 1px solid #e5e7eb;
+      border-radius: 0.5rem;
+      font-family: inherit;
+      margin-bottom: 1rem;
+    }
+    
+    .writing-submit-btn {
+      background-color: #3b82f6;
+      color: white;
+      padding: 0.75rem 1.5rem;
+      border-radius: 0.5rem;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+      transition: background-color 0.2s;
+    }
+    
+    .writing-submit-btn:hover {
+      background-color: #2563eb;
+    }
+    
+    /* Tab styles for exercise types */
+    .exercise-tabs {
+      display: flex;
+      border-bottom: 1px solid #e5e7eb;
+      margin-bottom: 1.5rem;
+    }
+    
+    .exercise-tab {
+      padding: 0.75rem 1.5rem;
+      cursor: pointer;
+      border-bottom: 3px solid transparent;
+      font-weight: 500;
+      transition: all 0.2s;
+    }
+    
+    .exercise-tab.active {
+      border-bottom-color: #3b82f6;
+      color: #3b82f6;
+    }
+    
+    .exercise-tab:hover {
+      background-color: #f3f4f6;
+    }
+    
+    .exercise-tab-content {
+      display: none;
+    }
+    
+    .exercise-tab-content.active {
+      display: block;
+    }
+    
+    /* Exercise selection card styles */
+    .exercise-card {
+      border: 1px solid #e5e7eb;
+      border-radius: 0.75rem;
+      overflow: hidden;
+      transition: all 0.3s ease;
+      cursor: pointer;
+    }
+    
+    .exercise-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+    }
+    
+    .exercise-card-img {
+      height: 120px;
+      background-color: #f3f4f6;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #9ca3af;
+    }
+    
+    .exercise-card-body {
+      padding: 1rem;
+    }
+    
+    .exercise-card-title {
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+    }
+    
+    .exercise-card-desc {
+      color: #6b7280;
+      font-size: 0.875rem;
+    }
+    
+    /* Exercise modal styles */
+    .exercise-modal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: rgba(0, 0, 0, 0.5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s;
+    }
+    
+    .exercise-modal.active {
+      opacity: 1;
+      pointer-events: all;
+    }
+    
+    .exercise-modal-content {
+      background-color: white;
+      border-radius: 0.75rem;
+      width: 90%;
+      max-width: 800px;
+      max-height: 90vh;
+      overflow-y: auto;
+      transform: translateY(20px);
+      transition: transform 0.3s;
+    }
+    
+    .exercise-modal.active .exercise-modal-content {
+      transform: translateY(0);
+    }
+    
+    .exercise-modal-header {
+      padding: 1.5rem;
+      border-bottom: 1px solid #e5e7eb;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    
+    .exercise-modal-title {
+      font-weight: 600;
+      font-size: 1.25rem;
+    }
+    
+    .exercise-modal-close {
+      background: none;
+      border: none;
+      font-size: 1.5rem;
+      cursor: pointer;
+      color: #6b7280;
+    }
+    
+    .exercise-modal-body {
+      padding: 1.5rem;
+    }
+  </style>
+
+  <!-- three.js + OrbitControls -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r150/three.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r150/examples/js/controls/OrbitControls.min.js"></script>
+
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <!-- TensorFlow.js -->
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/speech-commands"></script>
+
+  <!-- Font Awesome -->
+  <script src="https://kit.fontawesome.com/a2d042a1d1.js" crossorigin="anonymous"></script>
+</head>
+<body class="bg-gray-50 text-gray-900 font-sans antialiased">
+  <!-- Header -->
+  <header class="sticky top-0 z-50 bg-white/90 backdrop-blur border-b border-gray-200 transition-all duration-300">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="w-9 h-9 rounded-xl bg-brand-600 grid place-items-center transition-transform hover:rotate-12">
+          <i class="fa-solid fa-book-open text-white"></i>
+        </div>
+        <span class="font-extrabold tracking-tight text-xl text-brand-800">AIVOX</span>
+      </div>
+      <nav class="hidden md:flex items-center gap-8 text-sm font-semibold">
+        <a href="#home" class="hover-underline-animation hover:text-brand-600 transition-colors">Trang chủ</a>
+        <a href="#technology" class="hover-underline-animation hover:text-brand-600 transition-colors">Công nghệ</a>
+        <a href="#adaptive-learning" class="hover-underline-animation hover:text-brand-600 transition-colors">AI Học tập</a>
+        <a href="#vocabulary" class="hover-underline-animation hover:text-brand-600 transition-colors">Từ vựng</a>
+        <a href="#demo" class="hover-underline-animation hover:text-brand-600 transition-colors">Demo</a>
+        <a href="#english-game" class="hover-underline-animation hover:text-brand-600 transition-colors">Game học</a>
+        <a href="#team" class="hover-underline-animation hover:text-brand-600 transition-colors">Nhóm</a>
+      </nav>
+      <a href="#demo" class="inline-flex items-center gap-2 rounded-lg bg-brand-600 text-white px-4 py-2 text-sm font-semibold hover:bg-brand-700 transition-colors shadow-md hover:shadow-lg hover:scale-105 transform transition-transform">
+        Thử Demo <i class="fa-solid fa-arrow-right text-xs transition-transform group-hover:translate-x-1"></i>
+      </a>
+    </div>
+  </header>
+
+  <main>
+    <!-- Hero Section -->
+    <section id="home" class="relative overflow-hidden">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 lg:py-20 grid lg:grid-cols-2 gap-12 items-center">
+        <!-- 3D Book -->
+        <div class="relative rounded-2xl overflow-hidden shadow-2xl bg-gradient-to-br from-brand-50 via-white to-brand-100 transform hover:scale-[1.01] transition-transform duration-300 hover:shadow-xl hover:rotate-1">
+          <div id="book-wrap"></div>
+          <div class="absolute top-4 left-4 bg-gray-900/90 text-white px-3 py-1.5 rounded-full text-xs font-medium flex items-center gap-1.5 shadow-lg animate-bounce-slow">
+            <i class="fa-solid fa-cube animate-spin-slow"></i> Interactive 3D Book
+          </div>
+        </div>
+
+        <!-- Intro Content -->
+        <div class="glass rounded-2xl p-8 shadow-xl border border-white/20">
+          <span class="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-brand-600">
+            <i class="fa-solid fa-sparkles animate-pulse-slow"></i> Learn English with AI & 3D
+          </span>
+          <h1 class="mt-4 text-3xl lg:text-4xl font-extrabold leading-tight">
+            <span class="bg-clip-text text-transparent bg-gradient-to-r from-brand-500 via-purple-500 to-brand-700 animate-gradient-text">Sách 3D tương tác</span> + ESP32 hỗ trợ học tiếng Anh
+          </h1>
+          <p class="mt-4 text-gray-700 leading-relaxed">
+            Công nghệ đột phá kết hợp nhận dạng giọng nói, dịch thuật AI và hiển thị 3D tương tác. Nói tiếng Việt → hệ thống nhận dạng → dịch sang tiếng Anh → hiển thị trên "sách 3D" và phát âm chuẩn.
+          </p>
+          
+          <div class="mt-6 flex flex-wrap gap-2">
+            <span class="px-3 py-1 rounded-full text-xs bg-brand-50 text-brand-700 border border-brand-200 font-medium hover:scale-105 transform transition-transform">ESP32 DevKit V1</span>
+            <span class="px-3 py-1 rounded-full text-xs bg-brand-50 text-brand-700 border border-brand-200 font-medium hover:scale-105 transform transition-transform">MAX9814 Mic</span>
+            <span class="px-3 py-1 rounded-full text-xs bg-brand-50 text-brand-700 border border-brand-200 font-medium hover:scale-105 transform transition-transform">Speech-to-Text</span>
+            <span class="px-3 py-1 rounded-full text-xs bg-brand-50 text-brand-700 border border-brand-200 font-medium hover:scale-105 transform transition-transform">Text-to-Speech</span>
+            <span class="px-3 py-1 rounded-full text-xs bg-brand-50 text-brand-700 border border-brand-200 font-medium hover:scale-105 transform transition-transform">3D UI</span>
+            <span class="px-3 py-1 rounded-full text-xs bg-brand-50 text-brand-700 border border-brand-200 font-medium hover:scale-105 transform transition-transform">AI Phát âm</span>
+          </div>
+          
+          <div class="mt-8 flex flex-wrap gap-3">
+            <a href="#demo" class="inline-flex items-center gap-2 rounded-lg bg-brand-600 text-white px-5 py-3 text-sm font-semibold hover:bg-brand-700 transition-colors shadow-md hover:shadow-lg hover:scale-105 transform transition-transform">
+              <i class="fa-solid fa-microphone"></i> Thử nói tiếng Việt
+            </a>
+            <a href="#technology" class="inline-flex items-center gap-2 rounded-lg bg-white text-gray-900 border border-gray-300 px-5 py-3 text-sm font-semibold hover:bg-gray-50 transition-colors hover:scale-105 transform transition-transform">
+              <i class="fa-solid fa-microchip"></i> Xem công nghệ
+            </a>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Floating elements decoration -->
+      <div class="absolute top-20 left-10 w-16 h-16 rounded-full bg-brand-100 opacity-30 blur-xl -z-10 animate-float"></div>
+      <div class="absolute bottom-1/4 right-20 w-24 h-24 rounded-full bg-brand-200 opacity-20 blur-xl -z-10 animate-float" style="animation-delay: 1s;"></div>
+    </section>
+
+    <!-- Technology Section -->
+    <section id="technology" class="py-16 lg:py-24 bg-gradient-to-br from-gray-50 to-white border-t border-gray-100">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="text-center max-w-3xl mx-auto section-animate">
+          <span class="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-brand-600">
+            <i class="fa-solid fa-microchip"></i> CÔNG NGHỆ LÕI
+          </span>
+          <h2 class="mt-3 text-3xl lg:text-4xl font-extrabold text-gray-900">Nền Tảng Công Nghệ Đột Phá</h2>
+          <p class="mt-4 text-gray-600 leading-relaxed">
+            AIVOX tích hợp phần cứng tiên tiến và trí tuệ nhân tạo, mang đến trải nghiệm học tiếng Anh đa giác quan với công nghệ 3D và xử lý giọng nói đỉnh cao.
+          </p>
+        </div>
+
+        <div class="mt-12 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+          <!-- ESP32 Card -->
+          <div class="tech-card rounded-2xl border border-gray-200 bg-white p-6 flex flex-col items-center text-center hover:border-brand-300 section-animate" style="animation-delay: 0.1s;">
+            <div class="w-16 h-16 rounded-full bg-gradient-to-br from-brand-400 to-brand-600 mb-4 flex items-center justify-center text-white text-2xl shadow-lg hover:rotate-12 transition-transform">
+              <i class="fa-solid fa-microchip"></i>
+            </div>
+            <h3 class="text-lg font-bold text-gray-900">ESP32 DevKit V1</h3>
+            <p class="mt-2 text-sm text-gray-600 leading-relaxed">
+              Vi điều khiển AIoT mạnh mẽ với Wi-Fi/BLE, xử lý âm thanh và giao tiếp dữ liệu thời gian thực.
+            </p>
+          </div>
+          
+          <!-- MAX9814 Card -->
+          <div class="tech-card rounded-2xl border border-gray-200 bg-white p-6 flex flex-col items-center text-center hover:border-brand-300 section-animate" style="animation-delay: 0.2s;">
+            <div class="w-16 h-16 rounded-full bg-gradient-to-br from-brand-400 to-brand-600 mb-4 flex items-center justify-center text-white text-2xl shadow-lg hover:rotate-12 transition-transform">
+              <i class="fa-solid fa-microphone"></i>
+            </div>
+            <h3 class="text-lg font-bold text-gray-900">MAX9814 Mic Amp</h3>
+            <p class="mt-2 text-sm text-gray-600 leading-relaxed">
+              Khuếch đại âm thanh tự động với AGC, thu giọng nói rõ ràng trong mọi điều kiện môi trường.
+            </p>
+          </div>
+          
+          <!-- Speech-to-Text Card -->
+          <div class="tech-card rounded-2xl border border-gray-200 bg-white p-6 flex flex-col items-center text-center hover:border-brand-300 section-animate" style="animation-delay: 0.3s;">
+            <div class="w-16 h-16 rounded-full bg-gradient-to-br from-brand-400 to-brand-600 mb-4 flex items-center justify-center text-white text-2xl shadow-lg hover:rotate-12 transition-transform">
+              <i class="fa-solid fa-language"></i>
+            </div>
+            <h3 class="text-lg font-bold text-gray-900">Speech-to-Text</h3>
+            <p class="mt-2 text-sm text-gray-600 leading-relaxed">
+              Nhận diện giọng nói chính xác, chuyển đổi tiếng Việt sang tiếng Anh tức thời bằng AI tiên tiến.
+            </p>
+          </div>
+          
+          <!-- TTS Card -->
+          <div class="tech-card rounded-2xl border border-gray-200 bg-white p-6 flex flex-col items-center text-center hover:border-brand-300 section-animate" style="animation-delay: 0.4s;">
+            <div class="w-16 h-16 rounded-full bg-gradient-to-br from-brand-400 to-brand-600 mb-4 flex items-center justify-center text-white text-2xl shadow-lg hover:rotate-12 transition-transform">
+              <i class="fa-solid fa-volume-high"></i>
+            </div>
+            <h3 class="text-lg font-bold text-gray-900">Text-to-Speech</h3>
+            <p class="mt-2 text-sm text-gray-600 leading-relaxed">
+              Tổng hợp giọng nói tự nhiên, phát âm tiếng Anh chuẩn với ngữ điệu tự nhiên qua loa tích hợp.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Adaptive Learning Section -->
+    <section id="adaptive-learning" class="py-16 lg:py-20 bg-white border-t border-gray-200">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="text-center section-animate">
+          <span class="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-brand-600">
+            <i class="fa-solid fa-robot"></i> HỌC TẬP THÍCH ỨNG AI
+          </span>
+          <h2 class="mt-2 text-2xl lg:text-3xl font-extrabold">Hệ thống AI thông minh điều chỉnh theo trình độ của bạn</h2>
+          <p class="mt-3 text-gray-600 max-w-2xl mx-auto">
+            AIVOX phân tích điểm mạnh/yếu và tự động điều chỉnh bài học phù hợp với tiến độ của bạn.
+          </p>
+        </div>
+
+        <div class="mt-12 grid md:grid-cols-2 gap-8 items-center">
+          <div class="bg-white p-6 rounded-2xl shadow-lg border border-gray-100 section-animate">
+            <div class="flex items-center gap-4 mb-4">
+              <div class="w-12 h-12 rounded-xl bg-brand-100 flex items-center justify-center text-brand-600">
+                <i class="fa-solid fa-brain"></i>
+              </div>
+              <h3 class="text-xl font-bold">Phân tích trình độ thông minh</h3>
+            </div>
+            <p class="text-gray-600 mb-4">
+              Hệ thống AI đánh giá trình độ qua các bài kiểm tra và hoạt động học tập, xác định lĩnh vực bạn cần cải thiện.
+            </p>
+            <div class="h-64">
+              <canvas id="levelChart"></canvas>
+            </div>
+          </div>
+
+          <div class="space-y-6 section-animate" style="animation-delay: 0.2s;">
+            <div class="p-6 bg-gradient-to-r from-brand-50 to-white rounded-xl border border-gray-200 hover:shadow-md transition-shadow">
+              <h4 class="font-bold flex items-center gap-2">
+                <i class="fa-solid fa-route text-brand-500"></i> Lộ trình cá nhân hóa
+              </h4>
+              <p class="mt-2 text-gray-600 text-sm">
+                Mỗi người học sẽ có lộ trình riêng biệt dựa trên mục tiêu (giao tiếp, học thuật, du lịch...)
+              </p>
+            </div>
+            
+            <div class="p-6 bg-gradient-to-r from-brand-50 to-white rounded-xl border border-gray-200 hover:shadow-md transition-shadow">
+              <h4 class="font-bold flex items-center gap-2">
+                <i class="fa-solid fa-chart-line text-brand-500"></i> Đề xuất bài học thông minh
+              </h4>
+              <p class="mt-2 text-gray-600 text-sm">
+                AI đề xuất bài học tiếp theo dựa trên hiệu suất và sở thích của bạn
+              </p>
+            </div>
+            
+            <div class="p-6 bg-gradient-to-r from-brand-50 to-white rounded-xl border border-gray-200 hover:shadow-md transition-shadow">
+              <h4 class="font-bold flex items-center gap-2">
+                <i class="fa-solid fa-clock-rotate-left text-brand-500"></i> Ôn tập đúng thời điểm
+              </h4>
+              <p class="mt-2 text-gray-600 text-sm">
+                Hệ thống nhắc bạn ôn tập từ vựng ngay trước khi bạn sắp quên (dựa trên thuật toán SuperMemo)
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Vocabulary Learning Section -->
+    <section id="vocabulary" class="py-16 lg:py-20 bg-gray-50 border-t border-gray-200">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="text-center section-animate">
+          <span class="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-brand-600">
+            <i class="fa-solid fa-book"></i> HỌC TỪ VỰNG THÔNG MINH
+          </span>
+          <h2 class="mt-2 text-2xl lg:text-3xl font-extrabold">Hệ thống học từ vựng hiệu quả</h2>
+          <p class="mt-3 text-gray-600 max-w-2xl mx-auto">
+            Phương pháp học từ vựng khoa học kết hợp hình ảnh, âm thanh và lặp lại ngắt quãng.
+          </p>
+        </div>
+
+        <div class="mt-12 grid md:grid-cols-3 gap-6">
+          <!-- Flashcard Method -->
+          <div class="bg-white p-6 rounded-2xl border border-gray-200 hover:shadow-lg transition-shadow section-animate">
+            <div class="w-12 h-12 rounded-xl bg-purple-100 flex items-center justify-center text-purple-600 mb-4">
+              <i class="fa-solid fa-layer-group"></i>
+            </div>
+            <h3 class="text-lg font-bold">Flashcard thông minh</h3>
+            <p class="mt-2 text-gray-600 text-sm">
+              Học từ vựng qua flashcard điện tử với hình ảnh minh họa và phát âm chuẩn
+            </p>
+            <div class="mt-4">
+              <div class="game-card h-48 w-full">
+                <div class="game-card-inner h-full">
+                  <div class="game-card-front bg-gradient-to-br from-purple-100 to-white p-4 flex flex-col items-center justify-center">
+                    <div class="text-4xl mb-2">🍎</div>
+                    <h4 class="font-bold text-lg">Apple</h4>
+                    <p class="text-sm text-gray-500">/ˈæp.əl/</p>
+                  </div>
+                  <div class="game-card-back bg-gradient-to-br from-purple-500 to-purple-700 p-4 text-white flex flex-col items-center justify-center">
+                    <h4 class="font-bold text-lg mb-2">Quả táo</h4>
+                    <p class="text-sm">I eat an apple every morning.</p>
+                    <button class="mt-3 px-3 py-1 bg-white text-purple-600 rounded-full text-xs font-bold hover:bg-purple-100 transition-colors">
+                      <i class="fa-solid fa-volume-high mr-1"></i> Nghe
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Spaced Repetition -->
+          <div class="bg-white p-6 rounded-2xl border border-gray-200 hover:shadow-lg transition-shadow section-animate" style="animation-delay: 0.1s;">
+            <div class="w-12 h-12 rounded-xl bg-blue-100 flex items-center justify-center text-blue-600 mb-4">
+              <i class="fa-solid fa-clock-rotate-left"></i>
+            </div>
+            <h3 class="text-lg font-bold">Lặp lại ngắt quãng</h3>
+            <p class="mt-2 text-gray-600 text-sm">
+              Hệ thống tự động tính toán thời điểm tối ưu để ôn tập từ vựng
+            </p>
+            <div class="mt-4 p-4 bg-blue-50 rounded-lg">
+              <div class="flex items-center justify-between mb-2">
+                <span class="text-sm font-medium">Từ vựng mới</span>
+                <span class="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full">0 từ</span>
+              </div>
+              <div class="flex items-center justify-between mb-2">
+                <span class="text-sm font-medium">Cần ôn hôm nay</span>
+                <span class="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full">0 từ</span>
+              </div>
+              <div class="flex items-center justify-between">
+                <span class="text-sm font-medium">Đã nắm vững</span>
+                <span class="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full">0 từ</span>
+              </div>
+              <div class="mt-4 h-2 bg-blue-200 rounded-full overflow-hidden">
+                <div class="h-full bg-blue-600" style="width: 0%"></div>
+              </div>
+              <p class="mt-2 text-xs text-blue-600 text-center">Tiến độ học từ vựng: 0%</p>
+            </div>
+          </div>
+          
+          <!-- Vocabulary Games -->
+          <div class="bg-white p-6 rounded-2xl border border-gray-200 hover:shadow-lg transition-shadow section-animate" style="animation-delay: 0.2s;">
+            <div class="w-12 h-12 rounded-xl bg-green-100 flex items-center justify-center text-green-600 mb-4">
+              <i class="fa-solid fa-gamepad"></i>
+            </div>
+            <h3 class="text-lg font-bold">Trò chơi từ vựng</h3>
+            <p class="mt-2 text-gray-600 text-sm">
+              Học từ vựng qua các trò chơi tương tác thú vị
+            </p>
+            <div class="mt-4 grid grid-cols-2 gap-3">
+              <div class="p-3 bg-green-50 rounded-lg border border-green-200 flex flex-col items-center justify-center hover:bg-green-100 transition-colors">
+                <div class="w-10 h-10 bg-green-200 rounded-full flex items-center justify-center text-green-700 mb-2">
+                  <i class="fa-solid fa-puzzle-piece"></i>
+                </div>
+                <span class="text-xs font-medium text-center">Ghép từ</span>
+              </div>
+              <div class="p-3 bg-green-50 rounded-lg border border-green-200 flex flex-col items-center justify-center hover:bg-green-100 transition-colors">
+                <div class="w-10 h-10 bg-green-200 rounded-full flex items-center justify-center text-green-700 mb-2">
+                  <i class="fa-solid fa-headphones"></i>
+                </div>
+                <span class="text-xs font-medium text-center">Nghe & chọn</span>
+              </div>
+              <div class="p-3 bg-green-50 rounded-lg border border-green-200 flex flex-col items-center justify-center hover:bg-green-100 transition-colors">
+                <div class="w-10 h-10 bg-green-200 rounded-full flex items-center justify-center text-green-700 mb-2">
+                  <i class="fa-solid fa-spell-check"></i>
+                </div>
+                <span class="text-xs font-medium text-center">Đánh vần</span>
+              </div>
+              <div class="p-3 bg-green-50 rounded-lg border border-green-200 flex flex-col items-center justify-center hover:bg-green-100 transition-colors">
+                <div class="w-10 h-10 bg-green-200 rounded-full flex items-center justify-center text-green-700 mb-2">
+                  <i class="fa-solid fa-stopwatch"></i>
+                </div>
+                <span class="text-xs font-medium text-center">Đua tốc độ</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Demo Section -->
+    <section id="demo" class="py-16 lg:py-20 bg-white border-t border-gray-200">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="grid lg:grid-cols-2 gap-12 items-start">
+          <!-- Demo Controls -->
+          <div class="sticky top-24 section-animate">
+            <div class="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-brand-600">
+              <i class="fa-solid fa-flask"></i> TRẢI NGHIỆM DEMO
+            </div>
+            <h2 class="mt-2 text-2xl lg:text-3xl font-extrabold">Nói tiếng Việt → Nghe & thấy tiếng Anh</h2>
+            <p class="mt-3 text-gray-600 leading-relaxed">
+              Thử nói một số từ tiếng Việt đơn giản (ví dụ: <em>con mèo, quả táo, xin chào, màu đỏ…</em>). Hệ thống sẽ dịch & phát âm tiếng Anh (demo từ điển nhỏ, không cần Internet).
+            </p>
+
+            <div class="mt-6 p-6 rounded-xl border border-gray-200 bg-white shadow-sm hover:shadow-md transition-shadow">
+              <div class="flex items-start gap-3 p-3 rounded-lg bg-brand-50 text-brand-700 text-sm">
+                <i class="fa-solid fa-circle-info mt-0.5"></i>
+                <p>Trình duyệt cần cho phép sử dụng microphone. Nếu mic không hoạt động, bạn có thể nhập từ vào ô bên dưới.</p>
+              </div>
+
+              <!-- Input Controls -->
+              <div class="mt-6 space-y-4">
+                <div class="grid sm:grid-cols-2 gap-4">
+                  <div>
+                    <label class="block text-xs font-bold uppercase tracking-wider text-gray-600 mb-1">Tiếng Việt</label>
+                    <input id="vi-text" class="w-full rounded-lg border border-gray-300 px-4 py-2.5 focus:ring-2 focus:ring-brand-500 focus:border-brand-500 transition hover:border-brand-300" placeholder="vd: quả táo, con mèo...">
+                  </div>
+                  <div>
+                    <label class="block text-xs font-bold uppercase tracking-wider text-gray-600 mb-1">English</label>
+                    <input id="en-text" class="w-full rounded-lg border border-gray-300 px-4 py-2.5 bg-gray-50 focus:outline-none" placeholder="English translation" readonly>
+                  </div>
+                </div>
+
+                <div class="grid sm:grid-cols-2 gap-4">
+                  <div>
+                    <label class="block text-xs font-bold uppercase tracking-wider text-gray-600 mb-1">Ngữ pháp</label>
+                    <textarea id="grammar-text" class="w-full rounded-lg border border-gray-300 px-4 py-2.5 bg-gray-50 h-24 focus:outline-none" placeholder="Grammar explanation" readonly></textarea>
+                  </div>
+                  <div>
+                    <label class="block text-xs font-bold uppercase tracking-wider text-gray-600 mb-1">Ví dụ câu</label>
+                    <textarea id="sentence-text" class="w-full rounded-lg border border-gray-300 px-4 py-2.5 bg-gray-50 h-24 focus:outline-none" placeholder="Example sentence" readonly></textarea>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Pronunciation Feedback -->
+              <div class="mt-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                <div class="flex items-center gap-3">
+                  <div class="flex-shrink-0">
+                    <div id="pronunciation-feedback-icon" class="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center">
+                      <i class="fa-solid fa-microphone text-gray-500"></i>
+                    </div>
+                  </div>
+                  <div class="flex-1">
+                    <h4 class="font-medium text-sm">Phản hồi phát âm</h4>
+                    <div class="mt-1 flex items-center gap-2">
+                      <div id="pronunciation-meter" class="flex-1 h-2 bg-gray-200 rounded-full overflow-hidden">
+                        <div id="pronunciation-score-bar" class="h-full bg-brand-500" style="width: 0%"></div>
+                      </div>
+                      <span id="pronunciation-score-text" class="text-xs font-medium text-gray-500">0%</span>
+                    </div>
+                    <p id="pronunciation-feedback-text" class="mt-1 text-xs text-gray-500">
+                      Nhấn nút "Phát âm" để kiểm tra cách nói của bạn
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Action Buttons -->
+              <div class="mt-6 flex flex-wrap gap-3">
+                <button id="btn-mic" class="flex-1 inline-flex items-center justify-center gap-2 rounded-lg bg-brand-600 text-white px-4 py-3 text-sm font-semibold hover:bg-brand-700 transition-colors shadow-sm hover:scale-105 transform transition-transform">
+                  <i class="fa-solid fa-microphone"></i> Bấm để nói (VI)
+                </button>
+                <button id="btn-translate" class="inline-flex items-center justify-center gap-2 rounded-lg bg-white text-gray-900 border border-gray-300 px-4 py-3 text-sm font-semibold hover:bg-gray-50 transition-colors hover:scale-105 transform transition-transform">
+                  <i class="fa-solid fa-arrow-right-arrow-left"></i> Dịch
+                </button>
+                <button id="btn-speak" class="inline-flex items-center justify-center gap-2 rounded-lg bg-white text-gray-900 border border-gray-300 px-4 py-3 text-sm font-semibold hover:bg-gray-50 transition-colors hover:scale-105 transform transition-transform">
+                  <i class="fa-solid fa-volume-high"></i> Phát âm
+                </button>
+                <button id="btn-compare" class="flex-1 inline-flex items-center justify-center gap-2 rounded-lg bg-white text-gray-900 border border-gray-300 px-4 py-3 text-sm font-semibold hover:bg-gray-50 transition-colors hover:scale-105 transform transition-transform">
+                  <i class="fa-solid fa-wave-square"></i> Ghi âm & So sánh
+                </button>
+              </div>
+            </div>
+
+            <p class="mt-4 text-xs text-gray-500">
+              *Demo sử dụng Web Speech API và Speech Synthesis. Từ điển mẫu có giới hạn, sản phẩm thật sẽ kết nối với dịch vụ AI đầy đủ.*
+            </p>
+          </div>
+
+          <!-- Vocabulary List -->
+          <div class="space-y-8 section-animate" style="animation-delay: 0.2s;">
+            <!-- Common Words -->
+            <div class="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm hover:shadow-md transition-shadow">
+              <h3 class="font-bold text-xl flex items-center gap-2 text-gray-800">
+                <i class="fa-solid fa-list-ul text-brand-500"></i> Từ vựng minh họa
+              </h3>
+              <ul class="mt-4 grid sm:grid-cols-2 gap-3">
+                <li class="p-3 rounded-lg bg-gray-50 border border-gray-200 flex items-start gap-2 hover:bg-brand-50 transition-colors">
+                  <span class="text-gray-500">quả táo</span>
+                  <span class="text-gray-400 mx-1">→</span>
+                  <strong class="text-brand-600">apple</strong>
+                </li>
+                <li class="p-3 rounded-lg bg-gray-50 border border-gray-200 flex items-start gap-2 hover:bg-brand-50 transition-colors">
+                  <span class="text-gray-500">con mèo</span>
+                  <span class="text-gray-400 mx-1">→</span>
+                  <strong class="text-brand-600">cat</strong>
+                </li>
+                <li class="p-3 rounded-lg bg-gray-50 border border-gray-200 flex items-start gap-2 hover:bg-brand-50 transition-colors">
+                  <span class="text-gray-500">con chó</span>
+                  <span class="text-gray-400 mx-1">→</span>
+                  <strong class="text-brand-600">dog</strong>
+                </li>
+                <li class="p-3 rounded-lg bg-gray-50 border border-gray-200 flex items-start gap-2 hover:bg-brand-50 transition-colors">
+                  <span class="text-gray-500">xin chào</span>
+                  <span class="text-gray-400 mx-1">→</span>
+                  <strong class="text-brand-600">hello</strong>
+                </li>
+                <li class="p-3 rounded-lg bg-gray-50 border border-gray-200 flex items-start gap-2 hover:bg-brand-50 transition-colors">
+                  <span class="text-gray-500">cảm ơn</span>
+                  <span class="text-gray-400 mx-1">→</span>
+                  <strong class="text-brand-600">thank you</strong>
+                </li>
+                <li class="p-3 rounded-lg bg-gray-50 border border-gray-200 flex items-start gap-2 hover:bg-brand-50 transition-colors">
+                  <span class="text-gray-500">màu đỏ</span>
+                  <span class="text-gray-400 mx-1">→</span>
+                  <strong class="text-brand-600">red</strong>
+                </li>
+                <li class="p-3 rounded-lg bg-gray-50 border border-gray-200 flex items-start gap-2 hover:bg-brand-50 transition-colors">
+                  <span class="text-gray-500">màu xanh</span>
+                  <span class="text-gray-400 mx-1">→</span>
+                  <strong class="text-brand-600">blue</strong>
+                </li>
+                <li class="p-3 rounded-lg bg-gray-50 border border-gray-200 flex items-start gap-2 hover:bg-brand-50 transition-colors">
+                  <span class="text-gray-500">quyển sách</span>
+                  <span class="text-gray-400 mx-1">→</span>
+                  <strong class="text-brand-600">book</strong>
+                </li>
+              </ul>
+            </div>
+
+            <!-- English Tenses -->
+            <div class="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm hover:shadow-md transition-shadow">
+              <h3 class="font-bold text-xl flex items-center gap-2 text-gray-800">
+                <i class="fa-solid fa-clock-rotate-left text-brand-500"></i> 12 Thì Tiếng Anh
+              </h3>
+              <ul class="mt-4 space-y-3">
+                <li class="p-3 rounded-lg bg-gray-50 border border-gray-200 hover:bg-brand-50 transition-colors">
+                  <strong class="text-brand-600">1. Hiện tại đơn (Simple Present):</strong> Diễn tả thói quen, sự thật hiển nhiên. <em class="text-gray-500">(I eat rice every day.)</em>
+                </li>
+                <li class="p-3 rounded-lg bg-gray-50 border border-gray-200 hover:bg-brand-50 transition-colors">
+                  <strong class="text-brand-600">2. Hiện tại tiếp diễn (Present Continuous):</strong> Diễn tả hành động đang xảy ra. <em class="text-gray-500">(I am eating now.)</em>
+                </li>
+                <li class="p-3 rounded-lg bg-gray-50 border border-gray-200 hover:bg-brand-50 transition-colors">
+                  <strong class="text-brand-600">3. Hiện tại hoàn thành (Present Perfect):</strong> Diễn tả hành động đã hoàn thành liên quan đến hiện tại. <em class="text-gray-500">(I have eaten breakfast.)</em>
+                </li>
+                <li class="p-3 rounded-lg bg-gray-50 border border-gray-200 hover:bg-brand-50 transition-colors">
+                  <strong class="text-brand-600">4. Hiện tại hoàn thành tiếp diễn (Present Perfect Continuous):</strong> Nhấn mạnh sự kéo dài đến hiện tại. <em class="text-gray-500">(I have been eating for 2 hours.)</em>
+                </li>
+                <li class="p-3 rounded-lg bg-gray-50 border border-gray-200 hover:bg-brand-50 transition-colors">
+                  <strong class="text-brand-600">5. Quá khứ đơn (Simple Past):</strong> Diễn tả hành động đã xảy ra và kết thúc. <em class="text-gray-500">(I ate rice yesterday.)</em>
+                </li>
+                <li class="p-3 rounded-lg bg-gray-50 border border-gray-200 hover:bg-brand-50 transition-colors">
+                  <strong class="text-brand-600">6. Quá khứ tiếp diễn (Past Continuous):</strong> Diễn tả hành động đang xảy ra tại thời điểm trong quá khứ. <em class="text-gray-500">(I was eating at 6 PM.)</em>
+                </li>
+                <li class="p-3 rounded-lg bg-gray-50 border border-gray-200 hover:bg-brand-50 transition-colors">
+                  <strong class="text-brand-600">7. Quá khứ hoàn thành (Past Perfect):</strong> Diễn tả hành động xảy ra trước một mốc trong quá khứ. <em class="text-gray-500">(I had eaten before you came.)</em>
+                </li>
+                <li class="p-3 rounded-lg bg-gray-50 border border-gray-200 hover:bg-brand-50 transition-colors">
+                  <strong class="text-brand-600">8. Quá khứ hoàn thành tiếp diễn (Past Perfect Continuous):</strong> Nhấn mạnh sự kéo dài trước một mốc trong quá khứ. <em class="text-gray-500">(I had been eating for 2 hours.)</em>
+                </li>
+                <li class="p-3 rounded-lg bg-gray-50 border border-gray-200 hover:bg-brand-50 transition-colors">
+                  <strong class="text-brand-600">9. Tương lai đơn (Simple Future):</strong> Diễn tả hành động sẽ xảy ra. <em class="text-gray-500">(I will eat tonight.)</em>
+                </li>
+                <li class="p-3 rounded-lg bg-gray-50 border border-gray-200 hover:bg-brand-50 transition-colors">
+                  <strong class="text-brand-600">10. Tương lai tiếp diễn (Future Continuous):</strong> Diễn tả hành động sẽ đang xảy ra. <em class="text-gray-500">(I will be eating at 7 PM.)</em>
+                </li>
+                <li class="p-3 rounded-lg bg-gray-50 border border-gray-200 hover:bg-brand-50 transition-colors">
+                  <strong class="text-brand-600">11. Tương lai hoàn thành (Future Perfect):</strong> Diễn tả hành động sẽ hoàn thành trước một mốc trong tương lai. <em class="text-gray-500">(I will have eaten by 8 PM.)</em>
+                </li>
+                <li class="p-3 rounded-lg bg-gray-50 border border-gray-200 hover:bg-brand-50 transition-colors">
+                  <strong class="text-brand-600">12. Tương lai hoàn thành tiếp diễn (Future Perfect Continuous):</strong> Nhấn mạnh sự kéo dài đến một mốc trong tương lai. <em class="text-gray-500">(I will have been eating for 3 hours.)</em>
+                </li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- English Learning Game Section -->
+    <section id="english-game" class="py-16 lg:py-20 bg-gray-50 border-t border-gray-200">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="text-center section-animate">
+          <span class="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-brand-600">
+            <i class="fas fa-gamepad"></i> GAME HỌC TIẾNG ANH
+          </span>
+          <h2 class="mt-2 text-2xl lg:text-3xl font-extrabold">Học tiếng Anh qua trò chơi tương tác</h2>
+          <p class="mt-3 text-gray-600 max-w-2xl mx-auto">
+            Cải thiện kỹ năng tiếng Anh của bạn qua các trò chơi thú vị và hiệu quả.
+          </p>
+        </div>
+
+        <!-- Exercise Selection -->
+        <div class="mt-12 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <!-- Vocabulary Exercise -->
+          <div class="exercise-card" data-exercise="vocabulary">
+            <div class="exercise-card-img">
+              <i class="fas fa-book text-4xl"></i>
+            </div>
+            <div class="exercise-card-body">
+              <h3 class="exercise-card-title">Từ vựng</h3>
+              <p class="exercise-card-desc">Luyện tập từ vựng qua các bài tập đa dạng</p>
+            </div>
+          </div>
+          
+          <!-- Grammar Exercise -->
+          <div class="exercise-card" data-exercise="grammar">
+            <div class="exercise-card-img">
+              <i class="fas fa-puzzle-piece text-4xl"></i>
+            </div>
+            <div class="exercise-card-body">
+              <h3 class="exercise-card-title">Ngữ pháp</h3>
+              <p class="exercise-card-desc">Cải thiện ngữ pháp với các bài tập chọn lọc</p>
+            </div>
+          </div>
+          
+          <!-- Listening Exercise -->
+          <div class="exercise-card" data-exercise="listening">
+            <div class="exercise-card-img">
+              <i class="fas fa-headphones text-4xl"></i>
+            </div>
+            <div class="exercise-card-body">
+              <h3 class="exercise-card-title">Nghe hiểu</h3>
+              <p class="exercise-card-desc">Luyện kỹ năng nghe với các đoạn hội thoại</p>
+            </div>
+          </div>
+          
+          <!-- Speaking Exercise -->
+          <div class="exercise-card" data-exercise="speaking">
+            <div class="exercise-card-img">
+              <i class="fas fa-microphone text-4xl"></i>
+            </div>
+            <div class="exercise-card-body">
+              <h3 class="exercise-card-title">Nói</h3>
+              <p class="exercise-card-desc">Luyện phát âm và giao tiếp tiếng Anh</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Exercise Modal -->
+        <div class="exercise-modal" id="exerciseModal">
+          <div class="exercise-modal-content">
+            <div class="exercise-modal-header">
+              <h2 class="exercise-modal-title" id="exerciseModalTitle">Bài tập tiếng Anh</h2>
+              <button class="exercise-modal-close" id="exerciseModalClose">&times;</button>
+            </div>
+            <div class="exercise-modal-body">
+              <div class="exercise-progress">
+                <div class="exercise-progress-bar" id="exerciseProgressBar" style="width: 0%"></div>
+              </div>
+              <div class="exercise-score" id="exerciseScore">Điểm: 0/0</div>
+              
+              <!-- Vocabulary Exercise Content -->
+              <div class="exercise-tab-content active" id="vocabularyExercise">
+                <div class="exercise-container" id="vocabularyQuestion1">
+                  <div class="exercise-question">Chọn từ đúng nghĩa với "Apple":</div>
+                  <div class="exercise-options">
+                    <div class="exercise-option" data-correct="true">Quả táo</div>
+                    <div class="exercise-option">Quả cam</div>
+                    <div class="exercise-option">Quả chuối</div>
+                    <div class="exercise-option">Quả lê</div>
+                  </div>
+                  <div class="exercise-feedback correct">Chính xác! "Apple" có nghĩa là "Quả táo".</div>
+                  <div class="exercise-feedback incorrect">Sai rồi! "Apple" có nghĩa là "Quả táo".</div>
+                  <button class="exercise-next-btn" style="display: none;">Tiếp theo</button>
+                </div>
+                
+                <div class="exercise-container" id="vocabularyQuestion2" style="display: none;">
+                  <div class="exercise-question">Chọn từ tiếng Anh đúng với "Con chó":</div>
+                  <div class="exercise-options">
+                    <div class="exercise-option">Cat</div>
+                    <div class="exercise-option" data-correct="true">Dog</div>
+                    <div class="exercise-option">Bird</div>
+                    <div class="exercise-option">Fish</div>
+                  </div>
+                  <div class="exercise-feedback correct">Chính xác! "Con chó" trong tiếng Anh là "Dog".</div>
+                  <div class="exercise-feedback incorrect">Sai rồi! "Con chó" trong tiếng Anh là "Dog".</div>
+                  <button class="exercise-next-btn" style="display: none;">Tiếp theo</button>
+                </div>
+                
+                <div class="exercise-container" id="vocabularyQuestion3" style="display: none;">
+                  <div class="exercise-question">Điền từ còn thiếu: "I eat an ___ every morning."</div>
+                  <div class="fill-blank-sentence">
+                    I eat an <input type="text" class="fill-blank-input" data-answer="apple"> every morning.
+                  </div>
+                  <div class="exercise-feedback correct">Chính xác! Câu đúng là "I eat an apple every morning."</div>
+                  <div class="exercise-feedback incorrect">Sai rồi! Câu đúng là "I eat an apple every morning."</div>
+                  <button class="exercise-next-btn" style="display: none;">Tiếp theo</button>
+                </div>
+                
+                <div class="exercise-result" id="vocabularyResult">
+                  <h3>Hoàn thành bài tập!</h3>
+                  <p>Bạn đã trả lời đúng <span id="vocabularyScore">0</span>/3 câu hỏi.</p>
+                  <button class="exercise-result-btn" id="vocabularyRestart">Làm lại</button>
+                </div>
+              </div>
+              
+              <!-- Grammar Exercise Content -->
+              <div class="exercise-tab-content" id="grammarExercise" style="display: none;">
+                <div class="exercise-container" id="grammarQuestion1">
+                  <div class="exercise-question">Chọn câu đúng ngữ pháp:</div>
+                  <div class="exercise-options">
+                    <div class="exercise-option">She go to school every day.</div>
+                    <div class="exercise-option" data-correct="true">She goes to school every day.</div>
+                    <div class="exercise-option">She going to school every day.</div>
+                    <div class="exercise-option">She is go to school every day.</div>
+                  </div>
+                  <div class="exercise-feedback correct">Chính xác! Câu đúng là "She goes to school every day." (thì hiện tại đơn với chủ ngữ ngôi 3 số ít)</div>
+                  <div class="exercise-feedback incorrect">Sai rồi! Câu đúng là "She goes to school every day." (thì hiện tại đơn với chủ ngữ ngôi 3 số ít)</div>
+                  <button class="exercise-next-btn" style="display: none;">Tiếp theo</button>
+                </div>
+                
+                <div class="exercise-container" id="grammarQuestion2" style="display: none;">
+                  <div class="exercise-question">Chọn câu đúng với thì hiện tại tiếp diễn:</div>
+                  <div class="exercise-options">
+                    <div class="exercise-option">I am eat breakfast now.</div>
+                    <div class="exercise-option">I eating breakfast now.</div>
+                    <div class="exercise-option" data-correct="true">I am eating breakfast now.</div>
+                    <div class="exercise-option">I eats breakfast now.</div>
+                  </div>
+                  <div class="exercise-feedback correct">Chính xác! Câu đúng là "I am eating breakfast now." (thì hiện tại tiếp diễn: am/is/are + V-ing)</div>
+                  <div class="exercise-feedback incorrect">Sai rồi! Câu đúng là "I am eating breakfast now." (thì hiện tại tiếp diễn: am/is/are + V-ing)</div>
+                  <button class="exercise-next-btn" style="display: none;">Tiếp theo</button>
+                </div>
+                
+                <div class="exercise-container" id="grammarQuestion3" style="display: none;">
+                  <div class="exercise-question">Điền từ còn thiếu: "She ___ been working here since 2010."</div>
+                  <div class="fill-blank-sentence">
+                    She <input type="text" class="fill-blank-input" data-answer="has"> been working here since 2010.
+                  </div>
+                  <div class="exercise-feedback correct">Chính xác! Câu đúng là "She has been working here since 2010." (thì hiện tại hoàn thành tiếp diễn)</div>
+                  <div class="exercise-feedback incorrect">Sai rồi! Câu đúng là "She has been working here since 2010." (thì hiện tại hoàn thành tiếp diễn)</div>
+                  <button class="exercise-next-btn" style="display: none;">Tiếp theo</button>
+                </div>
+                
+                <div class="exercise-result" id="grammarResult">
+                  <h3>Hoàn thành bài tập!</h3>
+                  <p>Bạn đã trả lời đúng <span id="grammarScore">0</span>/3 câu hỏi.</p>
+                  <button class="exercise-result-btn" id="grammarRestart">Làm lại</button>
+                </div>
+              </div>
+              
+              <!-- Listening Exercise Content -->
+              <div class="exercise-tab-content" id="listeningExercise" style="display: none;">
+                <div class="exercise-container" id="listeningQuestion1">
+                  <div class="exercise-question">Nghe và chọn câu đúng:</div>
+                  <div class="listening-audio-container">
+                    <button class="listening-audio-btn" data-audio="hello">
+                      <i class="fas fa-play"></i>
+                    </button>
+                  </div>
+                  <div class="exercise-options">
+                    <div class="exercise-option">Goodbye</div>
+                    <div class="exercise-option" data-correct="true">Hello</div>
+                    <div class="exercise-option">Thank you</div>
+                    <div class="exercise-option">Sorry</div>
+                  </div>
+                  <div class="exercise-feedback correct">Chính xác! Bạn đã nghe thấy từ "Hello".</div>
+                  <div class="exercise-feedback incorrect">Sai rồi! Đoạn audio phát từ "Hello".</div>
+                  <button class="exercise-next-btn" style="display: none;">Tiếp theo</button>
+                </div>
+                
+                <div class="exercise-container" id="listeningQuestion2" style="display: none;">
+                  <div class="exercise-question">Nghe và chọn câu đúng:</div>
+                  <div class="listening-audio-container">
+                    <button class="listening-audio-btn" data-audio="how-are-you">
+                      <i class="fas fa-play"></i>
+                    </button>
+                  </div>
+                  <div class="exercise-options">
+                    <div class="exercise-option">What's your name?</div>
+                    <div class="exercise-option">Where are you from?</div>
+                    <div class="exercise-option" data-correct="true">How are you?</div>
+                    <div class="exercise-option">What time is it?</div>
+                  </div>
+                  <div class="exercise-feedback correct">Chính xác! Bạn đã nghe thấy câu "How are you?".</div>
+                  <div class="exercise-feedback incorrect">Sai rồi! Đoạn audio phát câu "How are you?".</div>
+                  <button class="exercise-next-btn" style="display: none;">Tiếp theo</button>
+                </div>
+                
+                <div class="exercise-container" id="listeningQuestion3" style="display: none;">
+                  <div class="exercise-question">Nghe và điền từ còn thiếu: "I have a ___."</div>
+                  <div class="listening-audio-container">
+                    <button class="listening-audio-btn" data-audio="dog">
+                      <i class="fas fa-play"></i>
+                    </button>
+                  </div>
+                  <div class="fill-blank-sentence">
+                    I have a <input type="text" class="fill-blank-input" data-answer="dog">.
+                  </div>
+                  <div class="exercise-feedback correct">Chính xác! Câu đúng là "I have a dog."</div>
+                  <div class="exercise-feedback incorrect">Sai rồi! Câu đúng là "I have a dog."</div>
+                  <button class="exercise-next-btn" style="display: none;">Tiếp theo</button>
+                </div>
+                
+                <div class="exercise-result" id="listeningResult">
+                  <h3>Hoàn thành bài tập!</h3>
+                  <p>Bạn đã trả lời đúng <span id="listeningScore">0</span>/3 câu hỏi.</p>
+                  <button class="exercise-result-btn" id="listeningRestart">Làm lại</button>
+                </div>
+              </div>
+              
+              <!-- Speaking Exercise Content -->
+              <div class="exercise-tab-content" id="speakingExercise" style="display: none;">
+                <div class="exercise-container" id="speakingQuestion1">
+                  <div class="exercise-question">Lặp lại câu sau:</div>
+                  <div class="speaking-container">
+                    <div class="speaking-prompt">Hello, how are you?</div>
+                    <button class="speaking-btn" id="speakHello">
+                      <i class="fas fa-microphone"></i> Bấm để nói
+                    </button>
+                    <div class="speaking-feedback">
+                      <p>Phát âm của bạn: <span id="speakingOutput"></span></p>
+                      <p>Độ chính xác: <span id="speakingAccuracy"></span>%</p>
+                    </div>
+                  </div>
+                  <button class="exercise-next-btn" style="display: none;">Tiếp theo</button>
+                </div>
+                
+                <div class="exercise-container" id="speakingQuestion2" style="display: none;">
+                  <div class="exercise-question">Lặp lại câu sau:</div>
+                  <div class="speaking-container">
+                    <div class="speaking-prompt">My name is John</div>
+                    <button class="speaking-btn" id="speakName">
+                      <i class="fas fa-microphone"></i> Bấm để nói
+                    </button>
+                    <div class="speaking-feedback">
+                      <p>Phát âm của bạn: <span id="speakingOutput2"></span></p>
+                      <p>Độ chính xác: <span id="speakingAccuracy2"></span>%</p>
+                    </div>
+                  </div>
+                  <button class="exercise-next-btn" style="display: none;">Tiếp theo</button>
+                </div>
+                
+                <div class="exercise-container" id="speakingQuestion3" style="display: none;">
+                  <div class="exercise-question">Lặp lại câu sau:</div>
+                  <div class="speaking-container">
+                    <div class="speaking-prompt">I love learning English</div>
+                    <button class="speaking-btn" id="speakLove">
+                      <i class="fas fa-microphone"></i> Bấm để nói
+                    </button>
+                    <div class="speaking-feedback">
+                      <p>Phát âm của bạn: <span id="speakingOutput3"></span></p>
+                      <p>Độ chính xác: <span id="speakingAccuracy3"></span>%</p>
+                    </div>
+                  </div>
+                  <button class="exercise-next-btn" style="display: none;">Tiếp theo</button>
+                </div>
+                
+                <div class="exercise-result" id="speakingResult">
+                  <h3>Hoàn thành bài tập!</h3>
+                  <p>Bạn đã hoàn thành <span id="speakingCompleted">0</span>/3 câu hỏi.</p>
+                  <p>Độ chính xác trung bình: <span id="speakingAverage">0</span>%</p>
+                  <button class="exercise-result-btn" id="speakingRestart">Làm lại</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Team Section -->
+    <section id="team" class="py-16 lg:py-20 bg-white border-t border-gray-200">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="text-center section-animate">
+          <span class="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-brand-600">
+            <i class="fa-solid fa-users"></i> NHÓM PHÁT TRIỂN
+          </span>
+          <h2 class="mt-2 text-2xl lg:text-3xl font-extrabold">Đội ngũ phát triển AIVOX</h2>
+          <p class="mt-3 text-gray-600 max-w-2xl mx-auto">
+            Nhóm sinh viên đam mê công nghệ và giáo dục, mong muốn tạo ra sản phẩm học tiếng Anh hiệu quả cho người Việt.
+          </p>
+        </div>
+
+        <div class="mt-12 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+          <!-- Member 1 - Nguyễn Hải Lộc -->
+          <div class="bg-white rounded-2xl overflow-hidden shadow-lg hover:shadow-xl transition-shadow section-animate">
+            <div class="h-48 bg-gradient-to-r from-blue-500 to-blue-600 flex items-center justify-center">
+              <i class="fas fa-user-circle text-white text-8xl opacity-80"></i>
+            </div>
+            <div class="p-6 text-center">
+              <h3 class="text-xl font-bold text-gray-900">Nguyễn Hải Lộc</h3>
+              <div class="mt-4 flex justify-center space-x-3">
+                <a href="#" class="text-gray-400 hover:text-brand-600">
+                  <i class="fab fa-facebook-f"></i>
+                </a>
+                <a href="#" class="text-gray-400 hover:text-brand-600">
+                  <i class="fab fa-github"></i>
+                </a>
+                <a href="#" class="text-gray-400 hover:text-brand-600">
+                  <i class="fab fa-linkedin-in"></i>
+                </a>
+              </div>
+            </div>
+          </div>
+
+          <!-- Member 2 - Huỳnh Nguyễn Ngọc Lan -->
+          <div class="bg-white rounded-2xl overflow-hidden shadow-lg hover:shadow-xl transition-shadow section-animate" style="animation-delay: 0.1s;">
+            <div class="h-48 bg-gradient-to-r from-purple-500 to-purple-600 flex items-center justify-center">
+              <i class="fas fa-user-circle text-white text-8xl opacity-80"></i>
+            </div>
+            <div class="p-6 text-center">
+              <h3 class="text-xl font-bold text-gray-900">Huỳnh Nguyễn Ngọc Lan</h3>
+              <div class="mt-4 flex justify-center space-x-3">
+                <a href="#" class="text-gray-400 hover:text-brand-600">
+                  <i class="fab fa-facebook-f"></i>
+                </a>
+                <a href="#" class="text-gray-400 hover:text-brand-600">
+                  <i class="fab fa-github"></i>
+                </a>
+                <a href="#" class="text-gray-400 hover:text-brand-600">
+                  <i class="fab fa-linkedin-in"></i>
+                </a>
+              </div>
+            </div>
+          </div>
+
+          <!-- Member 3 - Lê Bảo Nhi -->
+          <div class="bg-white rounded-2xl overflow-hidden shadow-lg hover:shadow-xl transition-shadow section-animate" style="animation-delay: 0.2s;">
+            <div class="h-48 bg-gradient-to-r from-green-500 to-green-600 flex items-center justify-center">
+              <i class="fas fa-user-circle text-white text-8xl opacity-80"></i>
+            </div>
+            <div class="p-6 text-center">
+              <h3 class="text-xl font-bold text-gray-900">Lê Bảo Nhi</h3>
+              <div class="mt-4 flex justify-center space-x-3">
+                <a href="#" class="text-gray-400 hover:text-brand-600">
+                  <i class="fab fa-facebook-f"></i>
+                </a>
+                <a href="#" class="text-gray-400 hover:text-brand-600">
+                  <i class="fab fa-github"></i>
+                </a>
+                <a href="#" class="text-gray-400 hover:text-brand-600">
+                  <i class="fab fa-linkedin-in"></i>
+                </a>
+              </div>
+            </div>
+          </div>
+
+          <!-- Member 4 - Nhã Uyên -->
+          <div class="bg-white rounded-2xl overflow-hidden shadow-lg hover:shadow-xl transition-shadow section-animate" style="animation-delay: 0.3s;">
+            <div class="h-48 bg-gradient-to-r from-red-500 to-red-600 flex items-center justify-center">
+              <i class="fas fa-user-circle text-white text-8xl opacity-80"></i>
+            </div>
+            <div class="p-6 text-center">
+              <h3 class="text-xl font-bold text-gray-900">Nhã Uyên</h3>
+              <div class="mt-4 flex justify-center space-x-3">
+                <a href="#" class="text-gray-400 hover:text-brand-600">
+                  <i class="fab fa-facebook-f"></i>
+                </a>
+                <a href="#" class="text-gray-400 hover:text-brand-600">
+                  <i class="fab fa-github"></i>
+                </a>
+                <a href="#" class="text-gray-400 hover:text-brand-600">
+                  <i class="fab fa-linkedin-in"></i>
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Footer -->
+  <footer class="bg-gray-900 text-white pt-16 pb-8">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-12">
+        <div>
+          <div class="flex items-center gap-3">
+            <div class="w-9 h-9 rounded-xl bg-brand-600 grid place-items-center transition-transform hover:rotate-12">
+              <i class="fa-solid fa-book-open text-white"></i>
+            </div>
+            <span class="font-extrabold tracking-tight text-xl text-white">AIVOX</span>
+          </div>
+          <p class="mt-4 text-gray-400 text-sm">
+            Sách 3D tương tác học tiếng Anh với AI và ESP32 - Giải pháp học tập đột phá cho người Việt.
+          </p>
+          <div class="mt-6 flex space-x-4">
+            <a href="#" class="text-gray-400 hover:text-white">
+              <i class="fab fa-facebook-f"></i>
+            </a>
+            <a href="#" class="text-gray-400 hover:text-white">
+              <i class="fab fa-twitter"></i>
+            </a>
+            <a href="#" class="text-gray-400 hover:text-white">
+              <i class="fab fa-github"></i>
+            </a>
+            <a href="#" class="text-gray-400 hover:text-white">
+              <i class="fab fa-youtube"></i>
+            </a>
+          </div>
+        </div>
+        
+        <div>
+          <h3 class="text-sm font-semibold uppercase tracking-wider text-gray-300">Sản phẩm</h3>
+          <ul class="mt-4 space-y-2">
+            <li><a href="#" class="text-gray-400 hover:text-white">Tính năng</a></li>
+            <li><a href="#" class="text-gray-400 hover:text-white">Bảng giá</a></li>
+            <li><a href="#" class="text-gray-400 hover:text-white">Demo</a></li>
+            <li><a href="#" class="text-gray-400 hover:text-white">Cập nhật</a></li>
+          </ul>
+        </div>
+        
+        <div>
+          <h3 class="text-sm font-semibold uppercase tracking-wider text-gray-300">Tài nguyên</h3>
+          <ul class="mt-4 space-y-2">
+            <li><a href="#" class="text-gray-400 hover:text-white">Tài liệu</a></li>
+            <li><a href="#" class="text-gray-400 hover:text-white">API</a></li>
+            <li><a href="#" class="text-gray-400 hover:text-white">Hướng dẫn</a></li>
+            <li><a href="#" class="text-gray-400 hover:text-white">Blog</a></li>
+            <li><a href="#" class="text-gray-400 hover:text-white">Hỗ trợ</a></li>
+          </ul>
+        </div>
+      </div>
+      
+      <div class="mt-12 pt-8 border-t border-gray-800 flex flex-col md:flex-row justify-between items-center">
+        <p class="text-gray-400 text-sm">
+          &copy; 2023 AIVOX. All rights reserved.
+        </p>
+        <div class="mt-4 md:mt-0 flex space-x-6">
+          <a href="#" class="text-gray-400 hover:text-white text-sm">Điều khoản</a>
+          <a href="#" class="text-gray-400 hover:text-white text-sm">Bảo mật</a>
+          <a href="#" class="text-gray-400 hover:text-white text-sm">Cookie</a>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Back to Top Button -->
+  <button id="back-to-top" class="fixed bottom-8 right-8 w-12 h-12 rounded-full bg-brand-600 text-white shadow-lg flex items-center justify-center opacity-0 invisible transition-all duration-300 hover:bg-brand-700">
+    <i class="fa-solid fa-arrow-up"></i>
+  </button>
+
+  <!-- JavaScript -->
+  <script>
+    // Scroll animations
+    document.addEventListener('DOMContentLoaded', function() {
+      const animateElements = document.querySelectorAll('.section-animate');
+      const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+          if (entry.isIntersecting) {
+            entry.target.style.opacity = '1';
+            entry.target.style.transform = 'translateY(0)';
+          }
+        });
+      }, { threshold: 0.1 });
+      
+      animateElements.forEach(el => observer.observe(el));
+
+      // Back to top button
+      const backToTopButton = document.getElementById('back-to-top');
+      window.addEventListener('scroll', () => {
+        if (window.pageYOffset > 300) {
+          backToTopButton.style.opacity = '1';
+          backToTopButton.style.visibility = 'visible';
+        } else {
+          backToTopButton.style.opacity = '0';
+          backToTopButton.style.visibility = 'hidden';
+        }
+      });
+      
+      backToTopButton.addEventListener('click', () => {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      });
+
+      // Demo functionality
+      const demoWords = {
+        'quả táo': { en: 'apple', grammar: 'Danh từ đếm được', example: 'I eat an apple every morning.' },
+        'con mèo': { en: 'cat', grammar: 'Danh từ đếm được', example: 'The cat is sleeping on the sofa.' },
+        'con chó': { en: 'dog', grammar: 'Danh từ đếm được', example: 'My dog is very friendly.' },
+        'xin chào': { en: 'hello', grammar: 'Lời chào', example: 'Hello, how are you today?' },
+        'cảm ơn': { en: 'thank you', grammar: 'Biểu đạt lòng biết ơn', example: 'Thank you for your help.' },
+        'màu đỏ': { en: 'red', grammar: 'Tính từ', example: 'She is wearing a red dress.' },
+        'màu xanh': { en: 'blue', grammar: 'Tính từ', example: 'The sky is blue today.' },
+        'quyển sách': { en: 'book', grammar: 'Danh từ đếm được', example: 'I am reading an interesting book.' }
+      };
+
+      const viInput = document.getElementById('vi-text');
+      const enInput = document.getElementById('en-text');
+      const grammarInput = document.getElementById('grammar-text');
+      const sentenceInput = document.getElementById('sentence-text');
+      const btnMic = document.getElementById('btn-mic');
+      const btnTranslate = document.getElementById('btn-translate');
+      const btnSpeak = document.getElementById('btn-speak');
+      const btnCompare = document.getElementById('btn-compare');
+      const feedbackIcon = document.getElementById('pronunciation-feedback-icon');
+      const feedbackText = document.getElementById('pronunciation-feedback-text');
+      const scoreBar = document.getElementById('pronunciation-score-bar');
+      const scoreText = document.getElementById('pronunciation-score-text');
+
+      // Translation function
+      function translateText() {
+        const viText = viInput.value.trim().toLowerCase();
+        if (demoWords[viText]) {
+          enInput.value = demoWords[viText].en;
+          grammarInput.value = demoWords[viText].grammar;
+          sentenceInput.value = demoWords[viText].example;
+        } else {
+          enInput.value = 'Không tìm thấy trong từ điển demo';
+          grammarInput.value = '';
+          sentenceInput.value = '';
+        }
+      }
+
+      // Speech recognition
+      if ('webkitSpeechRecognition' in window) {
+        const recognition = new webkitSpeechRecognition();
+        recognition.continuous = false;
+        recognition.interimResults = false;
+        recognition.lang = 'vi-VN';
+        
+        btnMic.addEventListener('click', () => {
+          recognition.start();
+          btnMic.innerHTML = '<i class="fa-solid fa-microphone"></i> Đang nghe...';
+          btnMic.classList.add('pulse-mic');
+        });
+
+        recognition.onresult = (event) => {
+          const transcript = event.results[0][0].transcript.trim().toLowerCase();
+          viInput.value = transcript;
+          translateText();
+          btnMic.innerHTML = '<i class="fa-solid fa-microphone"></i> Bấm để nói (VI)';
+          btnMic.classList.remove('pulse-mic');
+        };
+
+        recognition.onerror = (event) => {
+          console.error('Speech recognition error', event.error);
+          btnMic.innerHTML = '<i class="fa-solid fa-microphone"></i> Bấm để nói (VI)';
+          btnMic.classList.remove('pulse-mic');
+        };
+
+        recognition.onend = () => {
+          btnMic.innerHTML = '<i class="fa-solid fa-microphone"></i> Bấm để nói (VI)';
+          btnMic.classList.remove('pulse-mic');
+        };
+      } else {
+        btnMic.disabled = true;
+        btnMic.innerHTML = '<i class="fa-solid fa-microphone-slash"></i> Trình duyệt không hỗ trợ';
+      }
+
+      // Text-to-speech
+      btnSpeak.addEventListener('click', () => {
+        if (enInput.value) {
+          const utterance = new SpeechSynthesisUtterance(enInput.value);
+          utterance.lang = 'en-US';
+          speechSynthesis.speak(utterance);
+        }
+      });
+
+      // Pronunciation comparison
+      btnCompare.addEventListener('click', () => {
+        if (!enInput.value) return;
+        
+        // Simulate pronunciation analysis
+        feedbackIcon.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
+        feedbackText.textContent = 'Đang phân tích phát âm...';
+        
+        setTimeout(() => {
+          const score = Math.floor(Math.random() * 60) + 40; // Random score 40-100
+          scoreBar.style.width = `${score}%`;
+          scoreText.textContent = `${score}%`;
+          
+          if (score >= 80) {
+            feedbackIcon.innerHTML = '<i class="fa-solid fa-circle-check text-green-500"></i>';
+            feedbackText.textContent = 'Phát âm tốt! Gần giống với người bản xứ.';
+            feedbackIcon.classList.add('text-green-500');
+          } else if (score >= 50) {
+            feedbackIcon.innerHTML = '<i class="fa-solid fa-circle-exclamation text-yellow-500"></i>';
+            feedbackText.textContent = 'Phát âm khá. Cần luyện tập thêm về ngữ điệu.';
+            feedbackIcon.classList.add('text-yellow-500');
+          } else {
+            feedbackIcon.innerHTML = '<i class="fa-solid fa-circle-xmark text-red-500"></i>';
+            feedbackText.textContent = 'Cần cải thiện. Hãy nghe và lặp lại nhiều lần.';
+            feedbackIcon.classList.add('text-red-500');
+          }
+        }, 2000);
+      });
+
+      // Translate button
+      btnTranslate.addEventListener('click', translateText);
+
+      // Charts
+      // Level Chart
+      const levelCtx = document.getElementById('levelChart').getContext('2d');
+      const levelChart = new Chart(levelCtx, {
+        type: 'radar',
+        data: {
+          labels: ['Từ vựng', 'Ngữ pháp', 'Nghe hiểu', 'Nói', 'Đọc hiểu', 'Viết'],
+          datasets: [{
+            label: 'Trình độ hiện tại',
+            data: [0, 0, 0, 0, 0, 0],
+            backgroundColor: 'rgba(59, 130, 246, 0.2)',
+            borderColor: 'rgb(59, 130, 246)',
+            borderWidth: 2,
+            pointBackgroundColor: 'rgb(59, 130, 246)',
+            pointRadius: 4
+          }]
+        },
+        options: {
+          scales: {
+            r: {
+              angleLines: { display: true },
+              suggestedMin: 0,
+              suggestedMax: 100,
+              ticks: { display: false }
+            }
+          },
+          plugins: {
+            legend: { display: false }
+          }
+        }
+      });
+
+      // Skill Chart
+      const skillCtx = document.getElementById('skillChart').getContext('2d');
+      const skillChart = new Chart(skillCtx, {
+        type: 'doughnut',
+        data: {
+          labels: ['Từ vựng', 'Nghe hiểu', 'Phát âm', 'Ngữ pháp'],
+          datasets: [{
+            data: [0, 0, 0, 0],
+            backgroundColor: [
+              'rgb(59, 130, 246)',
+              'rgb(16, 185, 129)',
+              'rgb(139, 92, 246)',
+              'rgb(239, 68, 68)'
+            ],
+            borderWidth: 0
+          }]
+        },
+        options: {
+          cutout: '70%',
+          plugins: {
+            legend: { display: false }
+          }
+        }
+      });
+
+      // 3D Book
+      init3DBook();
+
+      // Exercise functionality
+      setupExercises();
+    });
+
+    // Initialize 3D Book
+    function init3DBook() {
+      const container = document.getElementById('book-wrap');
+
+      // Scene setup
+      const scene = new THREE.Scene();
+      scene.background = new THREE.Color(0xf8fafc);
+
+      // Camera
+      const camera = new THREE.PerspectiveCamera(75, container.clientWidth / container.clientHeight, 0.1, 1000);
+      camera.position.z = 5;
+
+      // Renderer
+      const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+      renderer.setSize(container.clientWidth, container.clientHeight);
+      container.appendChild(renderer.domElement);
+
+      // Lights
+      const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+      scene.add(ambientLight);
+      
+      const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+      directionalLight.position.set(0, 10, 10);
+      scene.add(directionalLight);
+
+      // Book geometry
+      const bookGeometry = new THREE.BoxGeometry(3, 4, 0.5);
+
+      // Materials for each side
+      const materials = [
+        new THREE.MeshStandardMaterial({ color: 0x3b82f6 }), // right side
+        new THREE.MeshStandardMaterial({ color: 0x3b82f6 }), // left side
+        new THREE.MeshStandardMaterial({ 
+          color: 0xffffff, 
+          map: new THREE.TextureLoader().load('https://images.unsplash.com/photo-1544947950-fa07a98d237f?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80') 
+        }), // top side
+        new THREE.MeshStandardMaterial({ color: 0x1e40af }), // bottom side
+        new THREE.MeshStandardMaterial({ 
+          color: 0xffffff, 
+          map: new THREE.TextureLoader().load('https://images.unsplash.com/photo-1589998059171-988d887df646?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80') 
+        }), // front side
+        new THREE.MeshStandardMaterial({ color: 0x1e3a8a }) // back side
+      ];
+
+      // Book mesh
+      const book = new THREE.Mesh(bookGeometry, materials);
+      scene.add(book);
+
+      // Orbit controls
+      const controls = new THREE.OrbitControls(camera, renderer.domElement);
+      controls.enableZoom = false;
+      controls.enablePan = false;
+      controls.autoRotate = true;
+      controls.autoRotateSpeed = 2;
+
+      // Animation loop
+      function animate() {
+        requestAnimationFrame(animate);
+        controls.update();
+        renderer.render(scene, camera);
+      }
+      animate();
+
+      // Handle window resize
+      window.addEventListener('resize', () => {
+        camera.aspect = container.clientWidth / container.clientHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(container.clientWidth, container.clientHeight);
+      });
+
+      // Add hover effect
+      container.addEventListener('mouseenter', () => {
+        controls.autoRotate = false;
+      });
+      
+      container.addEventListener('mouseleave', () => {
+        controls.autoRotate = true;
+      });
+    }
+
+    // Setup exercises
+    function setupExercises() {
+      const exerciseModal = document.getElementById('exerciseModal');
+      const exerciseModalClose = document.getElementById('exerciseModalClose');
+      const exerciseCards = document.querySelectorAll('.exercise-card');
+      
+      // Show modal when exercise card is clicked
+      exerciseCards.forEach(card => {
+        card.addEventListener('click', () => {
+          const exerciseType = card.getAttribute('data-exercise');
+          showExercise(exerciseType);
+        });
+      });
+      
+      // Close modal
+      exerciseModalClose.addEventListener('click', () => {
+        exerciseModal.classList.remove('active');
+      });
+      
+      // Close modal when clicking outside
+      exerciseModal.addEventListener('click', (e) => {
+        if (e.target === exerciseModal) {
+          exerciseModal.classList.remove('active');
+        }
+      });
+      
+      // Initialize all exercises
+      initVocabularyExercise();
+      initGrammarExercise();
+      initListeningExercise();
+      initSpeakingExercise();
+    }
+    
+    // Show specific exercise
+    function showExercise(exerciseType) {
+      const exerciseModal = document.getElementById('exerciseModal');
+      const exerciseModalTitle = document.getElementById('exerciseModalTitle');
+      const allExercises = document.querySelectorAll('.exercise-tab-content');
+      
+      // Hide all exercises
+      allExercises.forEach(exercise => {
+        exercise.style.display = 'none';
+      });
+      
+      // Show selected exercise
+      const exerciseToShow = document.getElementById(`${exerciseType}Exercise`);
+      if (exerciseToShow) {
+        exerciseToShow.style.display = 'block';
+        
+        // Reset exercise
+        if (exerciseType === 'vocabulary') resetVocabularyExercise();
+        if (exerciseType === 'grammar') resetGrammarExercise();
+        if (exerciseType === 'listening') resetListeningExercise();
+        if (exerciseType === 'speaking') resetSpeakingExercise();
+        
+        // Set modal title
+        if (exerciseType === 'vocabulary') exerciseModalTitle.textContent = 'Bài tập từ vựng';
+        if (exerciseType === 'grammar') exerciseModalTitle.textContent = 'Bài tập ngữ pháp';
+        if (exerciseType === 'listening') exerciseModalTitle.textContent = 'Bài tập nghe hiểu';
+        if (exerciseType === 'speaking') exerciseModalTitle.textContent = 'Bài tập nói';
+        
+        // Show modal
+        exerciseModal.classList.add('active');
+      }
+    }
+    
+    // Vocabulary exercise
+    function initVocabularyExercise() {
+      const options = document.querySelectorAll('#vocabularyExercise .exercise-option');
+      const nextButtons = document.querySelectorAll('#vocabularyExercise .exercise-next-btn');
+      const fillInputs = document.querySelectorAll('#vocabularyExercise .fill-blank-input');
+      const restartBtn = document.getElementById('vocabularyRestart');
+      
+      let currentQuestion = 1;
+      let score = 0;
+      const totalQuestions = 3;
+      
+      // Multiple choice questions
+      options.forEach(option => {
+        option.addEventListener('click', () => {
+          if (option.classList.contains('selected')) return;
+          
+          const isCorrect = option.hasAttribute('data-correct');
+          const questionContainer = option.closest('.exercise-container');
+          const feedback = questionContainer.querySelector(isCorrect ? '.exercise-feedback.correct' : '.exercise-feedback.incorrect');
+          const nextBtn = questionContainer.querySelector('.exercise-next-btn');
+          
+          // Mark selected option
+          options.forEach(opt => opt.classList.remove('selected'));
+          option.classList.add('selected');
+          
+          // Mark correct/incorrect
+          if (isCorrect) {
+            option.classList.add('correct');
+            score++;
+          } else {
+            option.classList.add('incorrect');
+            // Highlight correct answer
+            const correctOption = questionContainer.querySelector('.exercise-option[data-correct="true"]');
+            if (correctOption) correctOption.classList.add('correct');
+          }
+          
+          // Show feedback and next button
+          feedback.style.display = 'block';
+          nextBtn.style.display = 'inline-block';
+          
+          // Update progress bar
+          updateProgressBar(currentQuestion, totalQuestions);
+        });
+      });
+      
+      // Fill in the blank questions
+      fillInputs.forEach(input => {
+        input.addEventListener('keyup', (e) => {
+          if (e.key === 'Enter') {
+            checkFillBlankAnswer(input);
+          }
+        });
+        
+        input.addEventListener('blur', () => {
+          checkFillBlankAnswer(input);
+        });
+      });
+      
+      // Next buttons
+      nextButtons.forEach(btn => {
+        btn.addEventListener('click', () => {
+          const currentContainer = btn.closest('.exercise-container');
+          const nextContainer = document.getElementById(`vocabularyQuestion${currentQuestion + 1}`);
+          
+          if (nextContainer) {
+            currentContainer.style.display = 'none';
+            nextContainer.style.display = 'block';
+            currentQuestion++;
+            updateProgressBar(currentQuestion, totalQuestions);
+          } else {
+            // Show results
+            showVocabularyResults();
+          }
+        });
+      });
+      
+      // Restart button
+      restartBtn.addEventListener('click', resetVocabularyExercise);
+    }
+    
+    function checkFillBlankAnswer(input) {
+      const questionContainer = input.closest('.exercise-container');
+      const correctAnswer = input.getAttribute('data-answer');
+      const userAnswer = input.value.trim().toLowerCase();
+      const feedback = questionContainer.querySelector(userAnswer === correctAnswer ? '.exercise-feedback.correct' : '.exercise-feedback.incorrect');
+      const nextBtn = questionContainer.querySelector('.exercise-next-btn');
+      
+      if (userAnswer === correctAnswer) {
+        input.classList.add('correct');
+        score++;
+      } else {
+        input.classList.add('incorrect');
+      }
+      
+      feedback.style.display = 'block';
+      nextBtn.style.display = 'inline-block';
+    }
+    
+    function showVocabularyResults() {
+      const resultContainer = document.getElementById('vocabularyResult');
+      const scoreElement = document.getElementById('vocabularyScore');
+      const currentContainer = document.getElementById('vocabularyQuestion3');
+      
+      currentContainer.style.display = 'none';
+      resultContainer.style.display = 'block';
+      scoreElement.textContent = score;
+    }
+    
+    function resetVocabularyExercise() {
+      const containers = document.querySelectorAll('#vocabularyExercise .exercise-container');
+      const options = document.querySelectorAll('#vocabularyExercise .exercise-option');
+      const fillInputs = document.querySelectorAll('#vocabularyExercise .fill-blank-input');
+      const feedbacks = document.querySelectorAll('#vocabularyExercise .exercise-feedback');
+      const nextButtons = document.querySelectorAll('#vocabularyExercise .exercise-next-btn');
+      const resultContainer = document.getElementById('vocabularyResult');
+      
+      // Reset variables
+      currentQuestion = 1;
+      score = 0;
+      
+      // Hide all containers except first one
+      containers.forEach((container, index) => {
+        container.style.display = index === 0 ? 'block' : 'none';
+      });
+      
+      // Reset options
+      options.forEach(option => {
+        option.classList.remove('selected', 'correct', 'incorrect');
+      });
+      
+      // Reset fill inputs
+      fillInputs.forEach(input => {
+        input.value = '';
+        input.classList.remove('correct', 'incorrect');
+      });
+      
+      // Hide feedbacks and next buttons
+      feedbacks.forEach(feedback => {
+        feedback.style.display = 'none';
+      });
+      
+      nextButtons.forEach(btn => {
+        btn.style.display = 'none';
+      });
+      
+      // Hide result container
+      resultContainer.style.display = 'none';
+      
+      // Reset progress bar
+      updateProgressBar(1, 3);
+    }
+    
+    // Grammar exercise
+    function initGrammarExercise() {
+      const options = document.querySelectorAll('#grammarExercise .exercise-option');
+      const nextButtons = document.querySelectorAll('#grammarExercise .exercise-next-btn');
+      const fillInputs = document.querySelectorAll('#grammarExercise .fill-blank-input');
+      const restartBtn = document.getElementById('grammarRestart');
+      
+      let currentQuestion = 1;
+      let score = 0;
+      const totalQuestions = 3;
+      
+      // Multiple choice questions
+      options.forEach(option => {
+        option.addEventListener('click', () => {
+          if (option.classList.contains('selected')) return;
+          
+          const isCorrect = option.hasAttribute('data-correct');
+          const questionContainer = option.closest('.exercise-container');
+          const feedback = questionContainer.querySelector(isCorrect ? '.exercise-feedback.correct' : '.exercise-feedback.incorrect');
+          const nextBtn = questionContainer.querySelector('.exercise-next-btn');
+          
+          // Mark selected option
+          options.forEach(opt => opt.classList.remove('selected'));
+          option.classList.add('selected');
+          
+          // Mark correct/incorrect
+          if (isCorrect) {
+            option.classList.add('correct');
+            score++;
+          } else {
+            option.classList.add('incorrect');
+            // Highlight correct answer
+            const correctOption = questionContainer.querySelector('.exercise-option[data-correct="true"]');
+            if (correctOption) correctOption.classList.add('correct');
+          }
+          
+          // Show feedback and next button
+          feedback.style.display = 'block';
+          nextBtn.style.display = 'inline-block';
+          
+          // Update progress bar
+          updateProgressBar(currentQuestion, totalQuestions);
+        });
+      });
+      
+      // Fill in the blank questions
+      fillInputs.forEach(input => {
+        input.addEventListener('keyup', (e) => {
+          if (e.key === 'Enter') {
+            checkGrammarFillBlankAnswer(input);
+          }
+        });
+        
+        input.addEventListener('blur', () => {
+          checkGrammarFillBlankAnswer(input);
+        });
+      });
+      
+      // Next buttons
+      nextButtons.forEach(btn => {
+        btn.addEventListener('click', () => {
+          const currentContainer = btn.closest('.exercise-container');
+          const nextContainer = document.getElementById(`grammarQuestion${currentQuestion + 1}`);
+          
+          if (nextContainer) {
+            currentContainer.style.display = 'none';
+            nextContainer.style.display = 'block';
+            currentQuestion++;
+            updateProgressBar(currentQuestion, totalQuestions);
+          } else {
+            // Show results
+            showGrammarResults();
+          }
+        });
+      });
+      
+      // Restart button
+      restartBtn.addEventListener('click', resetGrammarExercise);
+    }
+    
+    function checkGrammarFillBlankAnswer(input) {
+      const questionContainer = input.closest('.exercise-container');
+      const correctAnswer = input.getAttribute('data-answer');
+      const userAnswer = input.value.trim().toLowerCase();
+      const feedback = questionContainer.querySelector(userAnswer === correctAnswer ? '.exercise-feedback.correct' : '.exercise-feedback.incorrect');
+      const nextBtn = questionContainer.querySelector('.exercise-next-btn');
+      
+      if (userAnswer === correctAnswer) {
+        input.classList.add('correct');
+        score++;
+      } else {
+        input.classList.add('incorrect');
+      }
+      
+      feedback.style.display = 'block';
+      nextBtn.style.display = 'inline-block';
+    }
+    
+    function showGrammarResults() {
+      const resultContainer = document.getElementById('grammarResult');
+      const scoreElement = document.getElementById('grammarScore');
+      const currentContainer = document.getElementById('grammarQuestion3');
+      
+      currentContainer.style.display = 'none';
+      resultContainer.style.display = 'block';
+      scoreElement.textContent = score;
+    }
+    
+    function resetGrammarExercise() {
+      const containers = document.querySelectorAll('#grammarExercise .exercise-container');
+      const options = document.querySelectorAll('#grammarExercise .exercise-option');
+      const fillInputs = document.querySelectorAll('#grammarExercise .fill-blank-input');
+      const feedbacks = document.querySelectorAll('#grammarExercise .exercise-feedback');
+      const nextButtons = document.querySelectorAll('#grammarExercise .exercise-next-btn');
+      const resultContainer = document.getElementById('grammarResult');
+      
+      // Reset variables
+      currentQuestion = 1;
+      score = 0;
+      
+      // Hide all containers except first one
+      containers.forEach((container, index) => {
+        container.style.display = index === 0 ? 'block' : 'none';
+      });
+      
+      // Reset options
+      options.forEach(option => {
+        option.classList.remove('selected', 'correct', 'incorrect');
+      });
+      
+      // Reset fill inputs
+      fillInputs.forEach(input => {
+        input.value = '';
+        input.classList.remove('correct', 'incorrect');
+      });
+      
+      // Hide feedbacks and next buttons
+      feedbacks.forEach(feedback => {
+        feedback.style.display = 'none';
+      });
+      
+      nextButtons.forEach(btn => {
+        btn.style.display = 'none';
+      });
+      
+      // Hide result container
+      resultContainer.style.display = 'none';
+      
+      // Reset progress bar
+      updateProgressBar(1, 3);
+    }
+    
+    // Listening exercise
+    function initListeningExercise() {
+      const audioButtons = document.querySelectorAll('#listeningExercise .listening-audio-btn');
+      const options = document.querySelectorAll('#listeningExercise .exercise-option');
+      const nextButtons = document.querySelectorAll('#listeningExercise .exercise-next-btn');
+      const fillInputs = document.querySelectorAll('#listeningExercise .fill-blank-input');
+      const restartBtn = document.getElementById('listeningRestart');
+      
+      let currentQuestion = 1;
+      let score = 0;
+      const totalQuestions = 3;
+      
+      // Audio buttons
+      audioButtons.forEach(btn => {
+        btn.addEventListener('click', () => {
+          const audioType = btn.getAttribute('data-audio');
+          playListeningAudio(audioType);
+        });
+      });
+      
+      // Multiple choice questions
+      options.forEach(option => {
+        option.addEventListener('click', () => {
+          if (option.classList.contains('selected')) return;
+          
+          const isCorrect = option.hasAttribute('data-correct');
+          const questionContainer = option.closest('.exercise-container');
+          const feedback = questionContainer.querySelector(isCorrect ? '.exercise-feedback.correct' : '.exercise-feedback.incorrect');
+          const nextBtn = questionContainer.querySelector('.exercise-next-btn');
+          
+          // Mark selected option
+          options.forEach(opt => opt.classList.remove('selected'));
+          option.classList.add('selected');
+          
+          // Mark correct/incorrect
+          if (isCorrect) {
+            option.classList.add('correct');
+            score++;
+          } else {
+            option.classList.add('incorrect');
+            // Highlight correct answer
+            const correctOption = questionContainer.querySelector('.exercise-option[data-correct="true"]');
+            if (correctOption) correctOption.classList.add('correct');
+          }
+          
+          // Show feedback and next button
+          feedback.style.display = 'block';
+          nextBtn.style.display = 'inline-block';
+          
+          // Update progress bar
+          updateProgressBar(currentQuestion, totalQuestions);
+        });
+      });
+      
+      // Fill in the blank questions
+      fillInputs.forEach(input => {
+        input.addEventListener('keyup', (e) => {
+          if (e.key === 'Enter') {
+            checkListeningFillBlankAnswer(input);
+          }
+        });
+        
+        input.addEventListener('blur', () => {
+          checkListeningFillBlankAnswer(input);
+        });
+      });
+      
+      // Next buttons
+      nextButtons.forEach(btn => {
+        btn.addEventListener('click', () => {
+          const currentContainer = btn.closest('.exercise-container');
+          const nextContainer = document.getElementById(`listeningQuestion${currentQuestion + 1}`);
+          
+          if (nextContainer) {
+            currentContainer.style.display = 'none';
+            nextContainer.style.display = 'block';
+            currentQuestion++;
+            updateProgressBar(currentQuestion, totalQuestions);
+          } else {
+            // Show results
+            showListeningResults();
+          }
+        });
+      });
+      
+      // Restart button
+      restartBtn.addEventListener('click', resetListeningExercise);
+    }
+    
+    function playListeningAudio(audioType) {
+      let audioText = '';
+      let utterance;
+      
+      switch(audioType) {
+        case 'hello':
+          audioText = 'Hello';
+          break;
+        case 'how-are-you':
+          audioText = 'How are you?';
+          break;
+        case 'dog':
+          audioText = 'dog';
+          break;
+      }
+      
+      if (audioText) {
+        utterance = new SpeechSynthesisUtterance(audioText);
+        utterance.lang = 'en-US';
+        speechSynthesis.speak(utterance);
+      }
+    }
+    
+    function checkListeningFillBlankAnswer(input) {
+      const questionContainer = input.closest('.exercise-container');
+      const correctAnswer = input.getAttribute('data-answer');
+      const userAnswer = input.value.trim().toLowerCase();
+      const feedback = questionContainer.querySelector(userAnswer === correctAnswer ? '.exercise-feedback.correct' : '.exercise-feedback.incorrect');
+      const nextBtn = questionContainer.querySelector('.exercise-next-btn');
+      
+      if (userAnswer === correctAnswer) {
+        input.classList.add('correct');
+        score++;
+      } else {
+        input.classList.add('incorrect');
+      }
+      
+      feedback.style.display = 'block';
+      nextBtn.style.display = 'inline-block';
+    }
+    
+    function showListeningResults() {
+      const resultContainer = document.getElementById('listeningResult');
+      const scoreElement = document.getElementById('listeningScore');
+      const currentContainer = document.getElementById('listeningQuestion3');
+      
+      currentContainer.style.display = 'none';
+      resultContainer.style.display = 'block';
+      scoreElement.textContent = score;
+    }
+    
+    function resetListeningExercise() {
+      const containers = document.querySelectorAll('#listeningExercise .exercise-container');
+      const options = document.querySelectorAll('#listeningExercise .exercise-option');
+      const fillInputs = document.querySelectorAll('#listeningExercise .fill-blank-input');
+      const feedbacks = document.querySelectorAll('#listeningExercise .exercise-feedback');
+      const nextButtons = document.querySelectorAll('#listeningExercise .exercise-next-btn');
+      const resultContainer = document.getElementById('listeningResult');
+      
+      // Reset variables
+      currentQuestion = 1;
+      score = 0;
+      
+      // Hide all containers except first one
+      containers.forEach((container, index) => {
+        container.style.display = index === 0 ? 'block' : 'none';
+      });
+      
+      // Reset options
+      options.forEach(option => {
+        option.classList.remove('selected', 'correct', 'incorrect');
+      });
+      
+      // Reset fill inputs
+      fillInputs.forEach(input => {
+        input.value = '';
+        input.classList.remove('correct', 'incorrect');
+      });
+      
+      // Hide feedbacks and next buttons
+      feedbacks.forEach(feedback => {
+        feedback.style.display = 'none';
+      });
+      
+      nextButtons.forEach(btn => {
+        btn.style.display = 'none';
+      });
+      
+      // Hide result container
+      resultContainer.style.display = 'none';
+      
+      // Reset progress bar
+      updateProgressBar(1, 3);
+    }
+    
+    // Speaking exercise
+    function initSpeakingExercise() {
+      const speakButtons = [
+        document.getElementById('speakHello'),
+        document.getElementById('speakName'),
+        document.getElementById('speakLove')
+      ];
+      
+      const outputElements = [
+        document.getElementById('speakingOutput'),
+        document.getElementById('speakingOutput2'),
+        document.getElementById('speakingOutput3')
+      ];
+      
+      const accuracyElements = [
+        document.getElementById('speakingAccuracy'),
+        document.getElementById('speakingAccuracy2'),
+        document.getElementById('speakingAccuracy3')
+      ];
+      
+      const feedbackElements = document.querySelectorAll('#speakingExercise .speaking-feedback');
+      const nextButtons = document.querySelectorAll('#speakingExercise .exercise-next-btn');
+      const restartBtn = document.getElementById('speakingRestart');
+      
+      let currentQuestion = 1;
+      let completedQuestions = 0;
+      let totalAccuracy = 0;
+      const totalQuestions = 3;
+      
+      // Check if speech recognition is available
+      if (!('webkitSpeechRecognition' in window)) {
+        speakButtons.forEach(btn => {
+          btn.disabled = true;
+          btn.innerHTML = '<i class="fas fa-microphone-slash"></i> Trình duyệt không hỗ trợ';
+        });
+        return;
+      }
+      
+      // Set up speech recognition for each button
+      speakButtons.forEach((btn, index) => {
+        const recognition = new webkitSpeechRecognition();
+        recognition.lang = 'en-US';
+        recognition.interimResults = false;
+        recognition.maxAlternatives = 1;
+        
+        btn.addEventListener('click', () => {
+          if (btn.classList.contains('recording')) {
+            recognition.stop();
+            btn.classList.remove('recording');
+            return;
+          }
+          
+          recognition.start();
+          btn.classList.add('recording');
+          btn.innerHTML = '<i class="fas fa-stop"></i> Dừng';
+          
+          // Reset feedback
+          feedbackElements[index].classList.remove('show', 'correct', 'incorrect');
+          outputElements[index].textContent = '';
+          accuracyElements[index].textContent = '0';
+        });
+        
+        recognition.onresult = (event) => {
+          const speechResult = event.results[0][0].transcript;
+          const accuracy = Math.floor(event.results[0][0].confidence * 100);
+          
+          outputElements[index].textContent = speechResult;
+          accuracyElements[index].textContent = accuracy;
+          
+          // Show feedback
+          feedbackElements[index].classList.add('show');
+          if (accuracy >= 70) {
+            feedbackElements[index].classList.add('correct');
+            feedbackElements[index].classList.remove('incorrect');
+          } else {
+            feedbackElements[index].classList.add('incorrect');
+            feedbackElements[index].classList.remove('correct');
+          }
+          
+          // Update completed questions and accuracy
+          completedQuestions++;
+          totalAccuracy += accuracy;
+          
+          // Show next button
+          const nextBtn = nextButtons[index];
+          nextBtn.style.display = 'inline-block';
+          
+          // Stop recording
+          btn.classList.remove('recording');
+          btn.innerHTML = '<i class="fas fa-microphone"></i> Bấm để nói';
+        };
+        
+        recognition.onerror = (event) => {
+          console.error('Speech recognition error', event.error);
+          btn.classList.remove('recording');
+          btn.innerHTML = '<i class="fas fa-microphone"></i> Bấm để nói';
+          
+          // Show error feedback
+          feedbackElements[index].classList.add('show', 'incorrect');
+          feedbackElements[index].innerHTML = '<p>Lỗi nhận dạng giọng nói. Vui lòng thử lại.</p>';
+        };
+      });
+      
+      // Next buttons
+      nextButtons.forEach(btn => {
+        btn.addEventListener('click', () => {
+          const currentContainer = btn.closest('.exercise-container');
+          const nextContainer = document.getElementById(`speakingQuestion${currentQuestion + 1}`);
+          
+          if (nextContainer) {
+            currentContainer.style.display = 'none';
+            nextContainer.style.display = 'block';
+            currentQuestion++;
+            updateProgressBar(currentQuestion, totalQuestions);
+          } else {
+            // Show results
+            showSpeakingResults();
+          }
+        });
+      });
+      
+      // Restart button
+      restartBtn.addEventListener('click', resetSpeakingExercise);
+    }
+    
+    function showSpeakingResults() {
+      const resultContainer = document.getElementById('speakingResult');
+      const completedElement = document.getElementById('speakingCompleted');
+      const averageElement = document.getElementById('speakingAverage');
+      const currentContainer = document.getElementById('speakingQuestion3');
+      
+      currentContainer.style.display = 'none';
+      resultContainer.style.display = 'block';
+      completedElement.textContent = completedQuestions;
+      averageElement.textContent = completedQuestions > 0 ? Math.floor(totalAccuracy / completedQuestions) : 0;
+    }
+    
+    function resetSpeakingExercise() {
+      const containers = document.querySelectorAll('#speakingExercise .exercise-container');
+      const feedbacks = document.querySelectorAll('#speakingExercise .speaking-feedback');
+      const nextButtons = document.querySelectorAll('#speakingExercise .exercise-next-btn');
+      const speakButtons = [
+        document.getElementById('speakHello'),
+        document.getElementById('speakName'),
+        document.getElementById('speakLove')
+      ];
+      const outputElements = [
+        document.getElementById('speakingOutput'),
+        document.getElementById('speakingOutput2'),
+        document.getElementById('speakingOutput3')
+      ];
+      const accuracyElements = [
+        document.getElementById('speakingAccuracy'),
+        document.getElementById('speakingAccuracy2'),
+        document.getElementById('speakingAccuracy3')
+      ];
+      const resultContainer = document.getElementById('speakingResult');
+      
+      // Reset variables
+      currentQuestion = 1;
+      completedQuestions = 0;
+      totalAccuracy = 0;
+      
+      // Hide all containers except first one
+      containers.forEach((container, index) => {
+        container.style.display = index === 0 ? 'block' : 'none';
+      });
+      
+      // Reset feedbacks
+      feedbacks.forEach(feedback => {
+        feedback.classList.remove('show', 'correct', 'incorrect');
+      });
+      
+      // Reset output and accuracy
+      outputElements.forEach(output => {
+        output.textContent = '';
+      });
+      
+      accuracyElements.forEach(accuracy => {
+        accuracy.textContent = '0';
+      });
+      
+      // Reset buttons
+      speakButtons.forEach(btn => {
+        if (!btn.disabled) {
+          btn.classList.remove('recording');
+          btn.innerHTML = '<i class="fas fa-microphone"></i> Bấm để nói';
+        }
+      });
+      
+      nextButtons.forEach(btn => {
+        btn.style.display = 'none';
+      });
+      
+      // Hide result container
+      resultContainer.style.display = 'none';
+      
+      // Reset progress bar
+      updateProgressBar(1, 3);
+    }
+    
+    // Update progress bar
+    function updateProgressBar(current, total) {
+      const progressBar = document.getElementById('exerciseProgressBar');
+      const progressPercentage = (current / total) * 100;
+      progressBar.style.width = `${progressPercentage}%`;
+      
+      // Update score text
+      const exerciseScore = document.getElementById('exerciseScore');
+      if (exerciseScore) {
+        exerciseScore.textContent = `Câu hỏi: ${current}/${total}`;
+      }
+    }
+  </script>
+</body>
+</html>
